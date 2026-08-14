@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HostelHub — Room {{ room.room_number }}, {{ room.hostel.name }}</title>
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dtjprrlkt/image/upload/v1786636209/Create_favicon_for_HostelHub_202608131649_zgftx0.jpg">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  :root {
+    --navy-deep: #14213D;
+    --navy-panel: #1E2F52;
+    --navy-panel-2: #253A63;
+    --gold: #E8A33D;
+    --gold-soft: #F3C374;
+    --off-white: #F4F1EA;
+    --slate: #93A0BC;
+    --slate-dim: #5D6A8C;
+    --green: #7FBF8F;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--navy-deep);
+    color: var(--off-white);
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- NAV ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px clamp(24px, 6vw, 72px);
+    background: rgba(20,33,61,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(232,163,61,0.12);
+  }
+  .brand-mark { display: flex; align-items: center; gap: 10px; }
+  .brand-mark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+  .brand-mark span { font-family: 'Fraunces', serif; font-size: 1.05rem; letter-spacing: 0.03em; color: var(--slate); }
+  .nav-links { display: flex; gap: 32px; font-size: 0.88rem; color: var(--slate); }
+  .nav-links a:hover { color: var(--gold-soft); }
+  .nav-cta {
+    background: var(--gold); color: var(--navy-deep); font-weight: 600; font-size: 0.86rem;
+    padding: 10px 20px; border-radius: 9px; transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+  .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+  @media (max-width: 760px) { .nav-links { display: none; } }
+
+  .crumb { font-size: 0.78rem; color: var(--slate-dim); padding: 28px clamp(24px, 6vw, 72px) 0; }
+  .crumb a:hover { color: var(--gold-soft); }
+
+  /* ---------- MAIN LAYOUT ---------- */
+  .detail-wrap {
+    display: grid;
+    grid-template-columns: 1.35fr 0.9fr;
+    gap: 40px;
+    padding: 24px clamp(24px, 6vw, 72px) 90px;
+    align-items: start;
+  }
+
+  /* gallery */
+  .gallery-main {
+    height: 400px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(232,163,61,0.12);
+    margin-bottom: 12px;
+  }
+  .gallery-main img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .gallery-thumbs { display: flex; gap: 10px; }
+  .gallery-thumbs img {
+    width: 82px; height: 62px; object-fit: cover; border-radius: 9px;
+    cursor: pointer; opacity: 0.55; border: 1px solid rgba(232,163,61,0.12);
+    transition: opacity 0.2s ease, border-color 0.2s ease;
+  }
+  .gallery-thumbs img.active,
+  .gallery-thumbs img:hover { opacity: 1; border-color: var(--gold); }
+
+  .room-copy { margin-top: 32px; }
+  .room-copy h2 {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-size: 1.4rem; margin-bottom: 12px;
+  }
+  .room-copy p { color: var(--slate); line-height: 1.65; font-size: 0.94rem; max-width: 560px; margin-bottom: 28px; }
+
+  .amenities {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .amenity {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--navy-panel);
+    border: 1px solid rgba(232,163,61,0.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.84rem;
+    color: var(--slate);
+  }
+  .amenity svg { flex-shrink: 0; }
+
+  /* bed layout diagram */
+  .layout-box {
+    background: var(--navy-panel);
+    border: 1px solid rgba(232,163,61,0.1);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .layout-box h3 { font-family: 'Fraunces', serif; font-size: 1.05rem; margin-bottom: 16px; }
+  .bed-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .bed {
+    width: 64px; height: 84px;
+    border-radius: 8px;
+    border: 1.5px dashed rgba(147,160,188,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; color: var(--slate-dim);
+    position: relative;
+  }
+  .bed.taken {
+    border-style: solid;
+    border-color: rgba(232,163,61,0.4);
+    background: rgba(232,163,61,0.06);
+    color: var(--gold-soft);
+  }
+  .bed.vacant {
+    border-style: solid;
+    border-color: rgba(127,191,143,0.5);
+    background: rgba(127,191,143,0.06);
+    color: var(--green);
+  }
+
+  /* ---------- KEYCARD SIDEBAR ---------- */
+  .keycard {
+    position: sticky;
+    top: 100px;
+    background: linear-gradient(160deg, var(--navy-panel-2), var(--navy-deep));
+    border: 1px solid rgba(232,163,61,0.2);
+    border-radius: 18px;
+    padding: 30px 28px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+  }
+  .keycard-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 22px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed rgba(232,163,61,0.25);
+  }
+  .keycard-top .brand-mark span { font-size: 0.82rem; }
+  .keycard-chip {
+    width: 34px; height: 26px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, var(--gold-soft), var(--gold));
+  }
+
+  .keycard-room {
+    font-family: 'Fraunces', serif;
+    font-size: 2.2rem;
+    color: var(--off-white);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .keycard-block { color: var(--slate); font-size: 0.86rem; margin-bottom: 22px; }
+
+  .keycard-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .keycard-meta div { display: flex; flex-direction: column; gap: 3px; }
+  .keycard-meta .num { font-family: 'Fraunces', serif; font-size: 1.15rem; color: var(--gold-soft); }
+  .keycard-meta .label { font-size: 0.68rem; color: var(--slate-dim); letter-spacing: 0.03em; text-transform: uppercase; }
+
+  .keycard-price {
+    font-family: 'Fraunces', serif;
+    font-size: 1.7rem;
+    color: var(--gold-soft);
+    margin-bottom: 2px;
+  }
+  .keycard-price small { font-family: 'Space Grotesk', sans-serif; font-size: 0.72rem; color: var(--slate-dim); }
+
+  .apply-btn {
+    width: 100%;
+    background: var(--gold);
+    color: var(--navy-deep);
+    border: none;
+    padding: 15px 0;
+    border-radius: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 18px;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+  .apply-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+
+  .keycard-note {
+    text-align: center;
+    font-size: 0.74rem;
+    color: var(--slate-dim);
+    margin-top: 14px;
+  }
+
+  @media (max-width: 900px) {
+    .detail-wrap { grid-template-columns: 1fr; }
+    .keycard { position: static; }
+    .gallery-main { height: 280px; }
+  }
+
+  footer {
+    padding: 40px clamp(24px, 6vw, 72px);
+    border-top: 1px solid rgba(232,163,61,0.1);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    color: var(--slate-dim); font-size: 0.8rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
+  <div class="nav-links">
+    <a href="{% url 'landing' %}">Home</a>
+    <a href="{% url 'listing' %}">Hostels</a>
+    <a href="#">Complaints</a>
+  </div>
+  {% if user.is_authenticated %}
+    <div style="display:flex; align-items:center; gap:14px;">
+      <a href="{% url 'dashboard' %}" style="color: var(--slate); font-size: 0.88rem;">Dashboard</a>
+      <a href="{% url 'logout' %}" class="nav-cta">Log Out</a>
+    </div>
+  {% else %}
+    <a href="{% url 'login_register' %}" class="nav-cta">Log In</a>
+  {% endif %}
+</nav>
+
+<div class="crumb"><a href="{% url 'landing' %}">Home</a> / <a href="{% url 'listing' %}">Hostels</a> / Room {{ room.room_number }}</div>
+
+<div class="detail-wrap">
+
+  <div class="gallery-col">
+    <div class="gallery-main">
+      <img id="main-img" src="https://picsum.photos/seed/{{ room.room_number }}/800/600" alt="Room {{ room.room_number }} main view">
+    </div>
+    <div class="gallery-thumbs" id="gallery-thumbs">
+      {% for i in "1234" %}
+        <img src="https://picsum.photos/seed/{{ room.room_number }}{{ i }}/200/150"
+             class="{% if forloop.first %}active{% endif %}"
+             onclick="swap(this, '{{ room.room_number }}{{ i }}')">
+      {% endfor %}
+    </div>
+
+    <div class="room-copy">
+      <h2 id="room-title">{{ room.hostel.get_room_type_display }} room, {{ room.capacity }} {{ room.capacity|pluralize:"bed,beds" }} — {{ room.hostel.name }}{% if room.floor %}, {{ room.floor }}{% endif %}</h2>
+      <p id="room-desc">
+        {% if room.hostel.description %}{{ room.hostel.description }}{% else %}A comfortable room in {{ room.hostel.name }}.{% endif %}
+        {{ room.vacant_beds }} of {{ room.capacity }} {{ room.capacity|pluralize:"bed,beds" }} currently vacant.
+      </p>
+
+      <div class="amenities">
+        <div class="amenity">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="#E8A33D"/></svg>
+          Free Wi-Fi
+        </div>
+        <div class="amenity" id="amenity-beds">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><rect x="2" y="11" width="20" height="7" rx="1.5"/><path d="M4 11V8a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v3"/><path d="M2 18v2M22 18v2"/></svg>
+          {{ room.capacity }} {{ room.capacity|pluralize:"Bed,Beds" }} &amp; Wardrobes
+        </div>
+        <div class="amenity">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h9"/></svg>
+          Study Desk
+        </div>
+        <div class="amenity">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M4 3v18M4 8h10a3 3 0 0 1 0 6H4"/></svg>
+          Shared Bathroom
+        </div>
+        <div class="amenity">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg>
+          24/7 Backup Power
+        </div>
+        <div class="amenity">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6l-8-4Z"/></svg>
+          Gated Security
+        </div>
+      </div>
+
+      <div class="layout-box">
+        <h3>Bed availability</h3>
+        <div class="bed-row" id="bed-row">
+          {% for dot in room.bed_dots %}
+            <div class="bed {{ dot }}">Bed {{ forloop.counter }}<br>{{ dot|title }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="keycard">
+    <div class="keycard-top">
+      <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
+      <div class="keycard-chip"></div>
+    </div>
+
+    <div class="keycard-room">{{ room.room_number }}</div>
+    <div class="keycard-block">{{ room.hostel.name }}{% if room.floor %} &middot; {{ room.floor }}{% endif %}</div>
+
+    <div class="keycard-meta">
+      <div><span class="num">{{ room.hostel.get_room_type_display }}</span><span class="label">Room Type</span></div>
+      <div><span class="num">{{ room.capacity }}</span><span class="label">Total Beds</span></div>
+      <div><span class="num">{{ room.vacant_beds }}</span><span class="label">Vacant Beds</span></div>
+      <div><span class="num">{{ room.floor|default:"—" }}</span><span class="label">Floor</span></div>
+    </div>
+
+    <div class="keycard-price">₦{{ room.hostel.price_per_session|floatformat:0 }}<small> / session</small></div>
+    {% if approved_booking %}
+      <p class="keycard-note" style="margin-top:18px; color:var(--gold-soft);">
+        Your application for Room {{ approved_booking.room.room_number }} has been approved.
+      </p>
+      <a href="{% url 'dashboard' %}" class="apply-btn" style="display:block; text-align:center;">
+        View My Allocation
+      </a>
+    {% elif user.is_authenticated %}
+      <a href="{% url 'booking' room.room_number %}" class="apply-btn" style="display:block; text-align:center;">
+        Apply for This Room
+      </a>
+      <p class="keycard-note">Your application will be submitted for review.</p>
+    {% else %}
+      <a href="{% url 'login_register' %}" class="apply-btn" style="display:block; text-align:center;">
+        Log In to Apply
+      </a>
+      <p class="keycard-note">You'll need to be logged in to complete an application.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<footer>
+  <span>© 2026 HostelHub — Student Accommodation Portal</span>
+  <span>Built with Django</span>
+</footer>
+
+<script>
+  function swap(el, seed) {
+    document.getElementById('main-img').src = `https://picsum.photos/seed/${seed}/800/600`;
+    document.querySelectorAll('.gallery-thumbs img').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HostelHub — Admin</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  :root {
+    --navy-deep: #14213D;
+    --navy-panel: #1E2F52;
+    --navy-panel-2: #253A63;
+    --gold: #E8A33D;
+    --gold-soft: #F3C374;
+    --off-white: #F4F1EA;
+    --slate: #93A0BC;
+    --slate-dim: #5D6A8C;
+    --green: #7FBF8F;
+    --amber: #E8C33D;
+    --red: #E8636B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--navy-deep);
+    color: var(--off-white);
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; }
+
+  /* ---------- SHELL ---------- */
+  .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar {
+    background: var(--navy-panel);
+    border-right: 1px solid rgba(232,163,61,0.1);
+    padding: 26px 18px;
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .brand-mark { display: flex; align-items: center; gap: 10px; padding: 0 8px; margin-bottom: 36px; }
+  .brand-mark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+  .brand-mark span { font-family: 'Fraunces', serif; font-size: 1.02rem; letter-spacing: 0.03em; color: var(--slate); }
+
+  .side-label { font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--slate-dim); padding: 0 10px; margin: 18px 0 8px; }
+  .side-link {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 12px; border-radius: 9px; font-size: 0.87rem; color: var(--slate);
+    cursor: pointer; margin-bottom: 2px;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .side-link:hover { background: rgba(232,163,61,0.06); color: var(--off-white); }
+  .side-link.active { background: rgba(232,163,61,0.12); color: var(--gold-soft); }
+  .side-badge {
+    background: var(--gold); color: var(--navy-deep);
+    font-size: 0.68rem; font-weight: 700;
+    padding: 1px 7px; border-radius: 10px;
+  }
+
+  .sidebar-foot { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-top: 1px solid rgba(232,163,61,0.1); padding-top: 18px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--gold); color: var(--navy-deep); font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; }
+  .sidebar-foot .who { font-size: 0.82rem; }
+  .sidebar-foot .role { font-size: 0.68rem; color: var(--slate-dim); }
+
+  /* ---------- MAIN ---------- */
+  main { padding: 32px clamp(20px, 3vw, 48px) 80px; }
+
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px; margin-bottom: 28px; }
+  .page-head h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.7rem; margin-bottom: 4px; }
+  .page-head p { color: var(--slate); font-size: 0.88rem; }
+  .btn-gold {
+    background: var(--gold); color: var(--navy-deep); font-weight: 600; font-size: 0.85rem;
+    padding: 11px 18px; border-radius: 9px; border: none; cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+
+  /* stat cards */
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+    margin-bottom: 34px;
+  }
+  .stat-card {
+    background: var(--navy-panel); border: 1px solid rgba(232,163,61,0.1);
+    border-radius: 14px; padding: 20px;
+  }
+  .stat-card .num { font-family: 'Fraunces', serif; font-size: 1.7rem; color: var(--gold-soft); }
+  .stat-card .label { font-size: 0.76rem; color: var(--slate-dim); margin-top: 4px; }
+  .stat-card .delta { font-size: 0.72rem; margin-top: 8px; }
+  .stat-card .delta.up { color: var(--green); }
+  .stat-card .delta.warn { color: var(--amber); }
+
+  @media (max-width: 1000px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  /* occupancy donut */
+  .occupancy-panel { display: flex; gap: 36px; align-items: center; flex-wrap: wrap; padding: 26px 24px; }
+  .donut {
+    width: 148px; height: 148px; border-radius: 50%; flex-shrink: 0;
+    background: conic-gradient(var(--green) 0% var(--vacant-pct), var(--gold) var(--vacant-pct) 100%);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .donut-inner {
+    width: 96px; height: 96px; border-radius: 50%;
+    background: var(--navy-panel);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .donut-inner .pct { font-family: 'Fraunces', serif; font-size: 1.35rem; color: var(--off-white); }
+  .donut-inner .pct-label { font-size: 0.62rem; color: var(--slate-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+
+  .legend { display: flex; flex-direction: column; gap: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .legend-dot.vacant { background: var(--green); }
+  .legend-dot.occupied { background: var(--gold); }
+  .legend-item .count { font-family: 'Fraunces', serif; color: var(--off-white); margin-left: 4px; }
+  .legend-item .tag { font-size: 0.74rem; color: var(--slate-dim); }
+
+  /* supervisors */
+  .supervisor-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;
+    padding: 22px 24px;
+  }
+  .supervisor-card {
+    background: var(--navy-panel-2); border: 1px solid rgba(232,163,61,0.1);
+    border-radius: 12px; padding: 18px;
+  }
+  .supervisor-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .supervisor-avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--gold); color: var(--navy-deep);
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .supervisor-name { font-size: 0.92rem; font-weight: 500; }
+  .supervisor-block { font-size: 0.72rem; color: var(--gold-soft); }
+  .supervisor-detail { font-size: 0.78rem; color: var(--slate); display: flex; justify-content: space-between; padding: 5px 0; }
+  .supervisor-detail span:first-child { color: var(--slate-dim); }
+  .supervisor-assistants {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(232,163,61,0.08);
+  }
+  .supervisor-assistants .assistants-label {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--slate-dim); margin-bottom: 6px;
+  }
+  .assistant-row { font-size: 0.78rem; color: var(--slate); display: flex; justify-content: space-between; padding: 3px 0; }
+  .assistant-row span:first-child { color: var(--off-white); }
+
+  /* room search */
+  .search-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--navy-panel-2); border: 1px solid rgba(147,160,188,0.18);
+    border-radius: 10px; padding: 10px 14px; margin: 0 24px 16px;
+  }
+  .search-bar svg { flex-shrink: 0; opacity: 0.6; }
+  .search-bar input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--off-white); font-family: 'Space Grotesk', sans-serif; font-size: 0.86rem;
+  }
+  .search-bar input::placeholder { color: var(--slate-dim); }
+
+  /* view sections */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .panel {
+    background: var(--navy-panel); border: 1px solid rgba(232,163,61,0.1);
+    border-radius: 16px; overflow: hidden; margin-bottom: 28px;
+  }
+  .panel-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 22px; border-bottom: 1px solid rgba(232,163,61,0.08);
+  }
+  .panel-head h2 { font-family: 'Fraunces', serif; font-size: 1.05rem; }
+  .panel-head .sub { font-size: 0.78rem; color: var(--slate-dim); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--slate-dim); padding: 12px 22px; border-bottom: 1px solid rgba(232,163,61,0.08);
+  }
+  td { padding: 14px 22px; font-size: 0.86rem; border-bottom: 1px solid rgba(232,163,61,0.06); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+
+  .who-cell { display: flex; align-items: center; gap: 10px; }
+  .who-cell .mini-avatar {
+    width: 30px; height: 30px; border-radius: 50%; background: var(--navy-panel-2);
+    color: var(--gold-soft); font-family: 'Fraunces', serif; font-size: 0.75rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .who-cell .matric { font-size: 0.74rem; color: var(--slate-dim); }
+
+  .badge { font-size: 0.7rem; padding: 5px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge.pending { background: rgba(232,195,61,0.14); color: var(--amber); }
+  .badge.approved { background: rgba(127,191,143,0.14); color: var(--green); }
+  .badge.rejected { background: rgba(232,99,107,0.14); color: var(--red); }
+  .badge.vacant { background: rgba(127,191,143,0.14); color: var(--green); }
+  .badge.full { background: rgba(232,99,107,0.14); color: var(--red); }
+
+  .row-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    border: 1px solid rgba(147,160,188,0.25); background: transparent; color: var(--off-white);
+    width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .icon-btn:hover { border-color: var(--gold); background: rgba(232,163,61,0.08); }
+  .icon-btn.approve:hover { border-color: var(--green); background: rgba(127,191,143,0.1); }
+  .icon-btn.reject:hover { border-color: var(--red); background: rgba(232,99,107,0.1); }
+
+  .empty-row td { text-align: center; color: var(--slate-dim); padding: 30px; }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; flex-direction: row; align-items: center; overflow-x: auto; }
+    .side-label { display: none; }
+    .sidebar-foot { display: none; }
+    .brand-mark { margin-bottom: 0; margin-right: 12px; }
+    table { font-size: 0.8rem; }
+    th, td { padding: 10px 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+<title>HostelHub — Admin</title>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
+
+    <div class="side-label">Overview</div>
+    <div class="side-link active" data-view="overview" onclick="showView('overview', this)">Dashboard</div>
+
+    <div class="side-label">Manage</div>
+    <div class="side-link" data-view="applications" onclick="showView('applications', this)">
+      <span>Applications</span><span class="side-badge">{{ pending_count }}</span>
+    </div>
+    <div class="side-link" data-view="rooms" onclick="showView('rooms', this)">Rooms</div>
+    <div class="side-link" data-view="hostels" onclick="showView('hostels', this)">Hostel Blocks</div>
+    <div class="side-link" data-view="students" onclick="showView('students', this)">Students</div>
+    <div class="side-link" data-view="staffrequests" onclick="showView('staffrequests', this)">
+      <span>Staff Requests</span><span class="side-badge">{{ pending_staff_count }}</span>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="avatar">{{ request.user.username|slice:":2"|upper }}</div>
+      <div>
+        <div class="who">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="role">Hostel Office</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- OVERVIEW -->
+    <div class="view active" id="view-overview">
+      <div class="page-head">
+        <div>
+          <h1>Overview</h1>
+          <p>Here's what's happening across all blocks today.</p>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num">{{ total_capacity }}</div><div class="label">Total Beds</div><div class="delta up">Across {{ hostels|length }} block{{ hostels|length|pluralize }}</div></div>
+        <div class="stat-card"><div class="num">{{ total_vacant }}</div><div class="label">Vacant Beds</div><div class="delta up">{{ vacant_pct }}% availability</div></div>
+        <div class="stat-card"><div class="num">{{ pending_count }}</div><div class="label">Pending Applications</div><div class="delta warn">Needs review</div></div>
+        <div class="stat-card"><div class="num">{{ total_occupied }}</div><div class="label">Occupied Beds</div><div class="delta">{{ occupied_pct }}% occupancy</div></div>
+      </div>
+
+      <div class="panel occupancy-panel" style="--vacant-pct: {{ vacant_pct }}%;">
+        <div class="donut">
+          <div class="donut-inner">
+            <div class="pct">{{ occupied_pct }}%</div>
+            <div class="pct-label">Occupied</div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot vacant"></span>Vacant<span class="count">{{ total_vacant }}</span><span class="tag">beds ({{ vacant_pct }}%)</span></div>
+          <div class="legend-item"><span class="legend-dot occupied"></span>Occupied<span class="count">{{ total_occupied }}</span><span class="tag">beds ({{ occupied_pct }}%)</span></div>
+          <div class="legend-item" style="color: var(--slate-dim); font-size: 0.78rem;">{{ total_capacity }} total beds across {{ hostels|length }} block{{ hostels|length|pluralize }}</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Recent applications</h2>
+            <div class="sub">Latest requests waiting on a decision</div>
+          </div>
+          <span onclick="showView('applications', document.querySelector('[data-view=applications]'))" style="font-size:0.8rem; color: var(--gold-soft); cursor:pointer;">View all →</span>
+        </div>
+        <table>
+          <thead><tr><th>Student</th><th>Room</th><th>Applied</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for b in bookings|slice:":5" %}
+            <tr>
+              <td class="who-cell">
+                <div class="mini-avatar">{{ b.student.username|slice:":2"|upper }}</div>
+                <div><div>{{ b.student.get_full_name|default:b.student.username }}</div><div class="matric">{{ b.student.studentprofile.matric_number }}</div></div>
+              </td>
+              <td>{{ b.room.room_number }}</td>
+              <td>{{ b.applied_at|timesince }} ago</td>
+              <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr class="empty-row"><td colspan="4">No applications yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- APPLICATIONS -->
+    <div class="view" id="view-applications">
+      <div class="page-head">
+        <div>
+          <h1>Applications</h1>
+          <p>Approve or reject pending room requests.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <table>
+          <thead><tr><th>Student</th><th>Room</th><th>Session</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for b in bookings %}
+            <tr>
+              <td class="who-cell">
+                <div class="mini-avatar">{{ b.student.username|slice:":2"|upper }}</div>
+                <div><div>{{ b.student.get_full_name|default:b.student.username }}</div><div class="matric">{{ b.student.studentprofile.matric_number }}</div></div>
+              </td>
+              <td>{{ b.room.room_number }}, {{ b.room.hostel.name }}</td>
+              <td>{{ b.session }}</td>
+              <td>{{ b.applied_at|timesince }} ago</td>
+              <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
+              <td class="row-actions">
+                {% if b.status == 'pending' %}
+                <form method="post" action="{% url 'booking_decision' b.id 'approved' %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="icon-btn approve" title="Approve">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7FBF8F" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+                  </button>
+                </form>
+                <form method="post" action="{% url 'booking_decision' b.id 'rejected' %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="icon-btn reject" title="Reject">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8636B" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                </form>
+                {% else %}
+                <span style="font-size:0.76rem; color: var(--slate-dim);">Decided {{ b.decided_at|timesince }} ago</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="empty-row"><td colspan="6">No applications yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ROOMS -->
+    <div class="view" id="view-rooms">
+      <div class="page-head">
+        <div>
+          <h1>Rooms</h1>
+          <p>Manage individual rooms across every block.</p>
+        </div>
+        <button class="btn-gold" onclick="alert('Add room — no create view built yet, add rooms via /admin/ for now.')">+ Add Room</button>
+      </div>
+
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="room-search" placeholder="Search by room number, block, or type…" oninput="filterRooms()">
+      </div>
+
+      <div class="panel">
+        <table id="rooms-table">
+          <thead><tr><th>Room</th><th>Block</th><th>Type</th><th>Capacity</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for room in rooms %}
+            <tr data-search="{{ room.room_number|lower }} {{ room.hostel.name|lower }} {{ room.hostel.get_room_type_display|lower }}">
+              <td>{{ room.room_number }}</td><td>{{ room.hostel.name }}</td><td>{{ room.hostel.get_room_type_display }}</td>
+              <td>{{ room.capacity }}</td><td>₦{{ room.hostel.price_per_session|floatformat:0 }}</td>
+              <td>{% if room.is_full %}<span class="badge full">Full</span>{% else %}<span class="badge vacant">{{ room.vacant_beds }} Vacant</span>{% endif %}</td>
+              <td class="row-actions">
+                <button class="icon-btn" title="Edit" onclick="alert('Edit room — no update view built yet, use /admin/ for now.')">✎</button>
+                <button class="icon-btn reject" title="Delete" onclick="alert('Delete room — no delete view built yet, use /admin/ for now.')">🗑</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="empty-row"><td colspan="7">No rooms added yet — add some through /admin/.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p id="room-search-empty" style="display:none; text-align:center; color: var(--slate-dim); font-size: 0.85rem; padding: 30px 0;">No rooms match your search.</p>
+      </div>
+    </div>
+
+    <!-- HOSTEL BLOCKS -->
+    <div class="view" id="view-hostels">
+      <div class="page-head">
+        <div>
+          <h1>Hostel Blocks</h1>
+          <p>The blocks that make up the hostel system.</p>
+        </div>
+        <button class="btn-gold" onclick="alert('Add block — no create view built yet, use /admin/ for now.')">+ Add Block</button>
+      </div>
+
+      <div class="panel">
+        <table>
+          <thead><tr><th>Block</th><th>Room Type</th><th>Per Room</th><th>Total Rooms</th><th>Vacant Beds</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for hostel in hostels %}
+            <tr>
+              <td>{{ hostel.name }}</td><td>{{ hostel.get_room_type_display }}</td><td>{{ hostel.capacity_per_room }}</td>
+              <td>{{ hostel.room_count }}</td><td>{{ hostel.vacant_count }}</td>
+              <td class="row-actions"><button class="icon-btn" title="Edit" onclick="alert('Edit block — no update view built yet, use /admin/ for now.')">✎</button></td>
+            </tr>
+            {% empty %}
+            <tr class="empty-row"><td colspan="6">No hostel blocks added yet — add some through /admin/.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Block supervisors</h2>
+            <div class="sub">One supervisor per block, first point of contact for residents</div>
+          </div>
+        </div>
+        <div class="supervisor-grid">
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">MO</div><div><div class="supervisor-name">Mrs. Margaret Okoye</div><div class="supervisor-block">Block A</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1101</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>m.okoye@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>John Okafor</span><span>081X XXX 2101</span></div>
+              <div class="assistant-row"><span>Mary Danjuma</span><span>081X XXX 2201</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">IB</div><div><div class="supervisor-name">Mr. Ibrahim Bello</div><div class="supervisor-block">Block B</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1102</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>i.bello@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>David Eze</span><span>081X XXX 2102</span></div>
+              <div class="assistant-row"><span>Ruth Yakubu</span><span>081X XXX 2202</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">GE</div><div><div class="supervisor-name">Mrs. Grace Eze</div><div class="supervisor-block">Block C</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1103</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>g.eze@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Samuel Bello</span><span>081X XXX 2103</span></div>
+              <div class="assistant-row"><span>Esther Nwachukwu</span><span>081X XXX 2203</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">SA</div><div><div class="supervisor-name">Mr. Suleiman Abdullahi</div><div class="supervisor-block">Block D</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1104</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>s.abdullahi@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Daniel Sani</span><span>081X XXX 2104</span></div>
+              <div class="assistant-row"><span>Joy Ogundipe</span><span>081X XXX 2204</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">CN</div><div><div class="supervisor-name">Mrs. Chioma Nwosu</div><div class="supervisor-block">Block E</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1105</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>c.nwosu@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Michael Musa</span><span>081X XXX 2105</span></div>
+              <div class="assistant-row"><span>Faith Chukwuemeka</span><span>081X XXX 2205</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">TA</div><div><div class="supervisor-name">Mr. Tunde Adewale</div><div class="supervisor-block">Block F</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1106</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>t.adewale@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Joseph Okafor</span><span>081X XXX 2106</span></div>
+              <div class="assistant-row"><span>Grace Danjuma</span><span>081X XXX 2206</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">BU</div><div><div class="supervisor-name">Mrs. Blessing Udo</div><div class="supervisor-block">Block G</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1107</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>b.udo@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Paul Eze</span><span>081X XXX 2107</span></div>
+              <div class="assistant-row"><span>Comfort Yakubu</span><span>081X XXX 2207</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">KN</div><div><div class="supervisor-name">Mr. Kelechi Nnamdi</div><div class="supervisor-block">Block H</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1108</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>k.nnamdi@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>James Bello</span><span>081X XXX 2108</span></div>
+              <div class="assistant-row"><span>Patience Nwachukwu</span><span>081X XXX 2208</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">FY</div><div><div class="supervisor-name">Mrs. Fatima Yusuf</div><div class="supervisor-block">Block I</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1109</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>f.yusuf@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Isaac Sani</span><span>081X XXX 2109</span></div>
+              <div class="assistant-row"><span>Mercy Ogundipe</span><span>081X XXX 2209</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">EO</div><div><div class="supervisor-name">Mr. Emeka Obi</div><div class="supervisor-block">Block J</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1110</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>e.obi@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Simon Musa</span><span>081X XXX 2110</span></div>
+              <div class="assistant-row"><span>Peace Chukwuemeka</span><span>081X XXX 2210</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">AM</div><div><div class="supervisor-name">Mrs. Aisha Mohammed</div><div class="supervisor-block">Block K</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1111</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>a.mohammed@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Ahmed Okafor</span><span>081X XXX 2111</span></div>
+              <div class="assistant-row"><span>Zainab Danjuma</span><span>081X XXX 2211</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">CA</div><div><div class="supervisor-name">Mr. Chidi Anyanwu</div><div class="supervisor-block">Block L</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1112</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>c.anyanwu@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Yakubu Eze</span><span>081X XXX 2112</span></div>
+              <div class="assistant-row"><span>Amina Yakubu</span><span>081X XXX 2212</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">NC</div><div><div class="supervisor-name">Mrs. Ngozi Chukwu</div><div class="supervisor-block">Block M</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1113</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>n.chukwu@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Nnamdi Bello</span><span>081X XXX 2113</span></div>
+              <div class="assistant-row"><span>Ify Nwachukwu</span><span>081X XXX 2213</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">BL</div><div><div class="supervisor-name">Mr. Bashir Lawal</div><div class="supervisor-block">Block N</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1114</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>b.lawal@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Bala Sani</span><span>081X XXX 2114</span></div>
+              <div class="assistant-row"><span>Rahila Ogundipe</span><span>081X XXX 2214</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">FO</div><div><div class="supervisor-name">Mrs. Funmilayo Ojo</div><div class="supervisor-block">Block O</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1115</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>f.ojo@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Chuka Musa</span><span>081X XXX 2115</span></div>
+              <div class="assistant-row"><span>Nkechi Chukwuemeka</span><span>081X XXX 2215</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">VO</div><div><div class="supervisor-name">Mr. Victor Okafor</div><div class="supervisor-block">Self-Contain 1</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1116</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>v.okafor@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Segun Okafor</span><span>081X XXX 2116</span></div>
+              <div class="assistant-row"><span>Bimpe Danjuma</span><span>081X XXX 2216</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">HS</div><div><div class="supervisor-name">Mrs. Halima Sani</div><div class="supervisor-block">Self-Contain 2</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1117</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>h.sani@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Femi Eze</span><span>081X XXX 2117</span></div>
+              <div class="assistant-row"><span>Yemisi Yakubu</span><span>081X XXX 2217</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">PE</div><div><div class="supervisor-name">Mr. Peter Effiong</div><div class="supervisor-block">Self-Contain 3</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1118</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>p.effiong@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Wale Bello</span><span>081X XXX 2118</span></div>
+              <div class="assistant-row"><span>Ronke Nwachukwu</span><span>081X XXX 2218</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">AI</div><div><div class="supervisor-name">Mrs. Adaeze Ike</div><div class="supervisor-block">2-Bedroom Apartment 1</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1119</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>a.ike@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Kunle Sani</span><span>081X XXX 2119</span></div>
+              <div class="assistant-row"><span>Titi Ogundipe</span><span>081X XXX 2219</span></div>
+            </div>
+          </div>
+          <div class="supervisor-card">
+            <div class="supervisor-top"><div class="supervisor-avatar">MG</div><div><div class="supervisor-name">Mr. Musa Garba</div><div class="supervisor-block">2-Bedroom Apartment 2</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1120</span></div>
+            <div class="supervisor-detail"><span>Email</span><span>m.garba@hostelhub.edu.ng</span></div>
+            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-assistants">
+              <div class="assistants-label">Assistants</div>
+              <div class="assistant-row"><span>Dele Musa</span><span>081X XXX 2120</span></div>
+              <div class="assistant-row"><span>Toyin Chukwuemeka</span><span>081X XXX 2220</span></div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDENTS -->
+    <div class="view" id="view-students">
+      <div class="page-head">
+        <div>
+          <h1>Students</h1>
+          <p>Everyone registered on the portal.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <table>
+          <thead><tr><th>Student</th><th>Department</th><th>Level</th><th>Room</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td class="who-cell">
+                <div class="mini-avatar">{{ s.user.username|slice:":2"|upper }}</div>
+                <div><div>{{ s.user.get_full_name|default:s.user.username }}</div><div class="matric">{{ s.matric_number }}</div></div>
+              </td>
+              <td>{{ s.department|default:"—" }}</td>
+              <td>{{ s.level }}</td>
+              <td>{% if s.latest_booking %}{{ s.latest_booking.room.room_number }}{% else %}—{% endif %}</td>
+              <td>
+                {% if s.latest_booking %}
+                  <span class="badge {{ s.latest_booking.status }}">{{ s.latest_booking.get_status_display }}</span>
+                {% else %}
+                  <span style="color: var(--slate-dim); font-size: 0.78rem;">No application</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="empty-row"><td colspan="5">No students registered yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STAFF REQUESTS -->
+    <div class="view" id="view-staffrequests">
+      <div class="page-head">
+        <div>
+          <h1>Staff Requests</h1>
+          <p>Approve or reject requests for admin access.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <table>
+          <thead><tr><th>Name</th><th>Staff ID</th><th>Department</th><th>Email</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for r in staff_requests %}
+            <tr>
+              <td class="who-cell">
+                <div class="mini-avatar">{{ r.user.username|slice:":2"|upper }}</div>
+                <div>{{ r.user.get_full_name|default:r.user.username }}</div>
+              </td>
+              <td>{{ r.staff_id }}</td>
+              <td>{{ r.department }}</td>
+              <td>{{ r.user.email }}</td>
+              <td>{{ r.requested_at|timesince }} ago</td>
+              <td><span class="badge {{ r.status }}">{{ r.get_status_display }}</span></td>
+              <td class="row-actions">
+                {% if r.status == 'pending' %}
+                <form method="post" action="{% url 'staff_request_decision' r.id 'approved' %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="icon-btn approve" title="Approve">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7FBF8F" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+                  </button>
+                </form>
+                <form method="post" action="{% url 'staff_request_decision' r.id 'rejected' %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="icon-btn reject" title="Reject">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8636B" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                </form>
+                {% else %}
+                <span style="font-size:0.76rem; color: var(--slate-dim);">Decided {{ r.decided_at|timesince }} ago</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="empty-row"><td colspan="7">No staff access requests yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  function showView(name, el) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.querySelectorAll('.side-link').forEach(l => l.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function filterRooms() {
+    const query = document.getElementById('room-search').value.trim().toLowerCase();
+    const rows = document.querySelectorAll('#rooms-table tbody tr[data-search]');
+    let visibleCount = 0;
+    rows.forEach(row => {
+      const matches = row.dataset.search.includes(query);
+      row.style.display = matches ? '' : 'none';
+      if (matches) visibleCount++;
+    });
+    document.getElementById('room-search-empty').style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+  }
+</script>
+
+</body>
+</html>

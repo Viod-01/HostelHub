@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HostelHub — Admin Access</title>
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dtjprrlkt/image/upload/v1786636209/Create_favicon_for_HostelHub_202608131649_zgftx0.jpg">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  :root {
+    --navy-deep: #14213D;
+    --navy-panel: #1E2F52;
+    --navy-panel-2: #253A63;
+    --gold: #E8A33D;
+    --gold-soft: #F3C374;
+    --off-white: #F4F1EA;
+    --slate: #93A0BC;
+    --slate-dim: #5D6A8C;
+    --error: #E8636B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--navy-deep);
+    color: var(--off-white);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-x: hidden;
+  }
+
+  .stage {
+    width: 100%;
+    max-width: 960px;
+    min-height: 600px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--navy-panel);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+    border: 1px solid rgba(232,163,61,0.12);
+  }
+
+  /* ---------- LEFT: brand / shield panel ---------- */
+  .brand {
+    position: relative;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(232,163,61,0.16), transparent 55%),
+      linear-gradient(160deg, var(--navy-panel-2) 0%, var(--navy-deep) 100%);
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 10px var(--gold);
+  }
+
+  .brand-mark span {
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.03em;
+    color: var(--slate);
+  }
+
+  .brand-mark .tag {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--navy-deep);
+    background: var(--gold-soft);
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-left: 2px;
+  }
+
+  /* animated shield illustration */
+  .shield-scene {
+    position: relative;
+    height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .shield-ring {
+    width: 108px; height: 108px;
+    border-radius: 50%;
+    background: var(--navy-deep);
+    border: 1px solid rgba(232,163,61,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: inset 0 0 22px rgba(0,0,0,0.6);
+    animation: pulse 3.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: inset 0 0 22px rgba(0,0,0,0.6), 0 0 0 0 rgba(232,163,61,0.25); }
+    50% { box-shadow: inset 0 0 22px rgba(0,0,0,0.6), 0 0 0 10px rgba(232,163,61,0); }
+  }
+
+  .shield-svg path {
+    animation: glow 3.2s ease-in-out infinite;
+  }
+
+  @keyframes glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.5); }
+  }
+
+  .status-row {
+    display: flex;
+    gap: 22px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(232,163,61,0.14);
+  }
+
+  .status-row div { display: flex; flex-direction: column; gap: 2px; }
+  .status-row .num { font-family: 'Fraunces', serif; font-size: 1.4rem; color: var(--gold-soft); }
+  .status-row .label { font-size: 0.72rem; color: var(--slate-dim); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  .brand-copy h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(2rem, 4vw, 2.6rem);
+    line-height: 1.1;
+    margin-bottom: 14px;
+  }
+
+  .brand-copy h1 em {
+    font-style: normal;
+    color: var(--gold-soft);
+  }
+
+  .brand-copy p {
+    color: var(--slate);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    max-width: 320px;
+  }
+
+  /* ---------- RIGHT: form panel ---------- */
+  .panel {
+    padding: 44px 44px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(255,255,255,0.04);
+    padding: 5px;
+    border-radius: 12px;
+    margin-bottom: 34px;
+    position: relative;
+  }
+
+  .tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--slate);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 11px 0;
+    border-radius: 9px;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+    transition: color 0.3s ease;
+  }
+
+  .tab-btn.active { color: var(--navy-deep); }
+
+  .tab-glider {
+    position: absolute;
+    top: 5px; left: 5px;
+    width: calc(50% - 5px);
+    height: calc(100% - 10px);
+    background: var(--gold);
+    border-radius: 9px;
+    transition: transform 0.35s cubic-bezier(.65,0,.35,1);
+    z-index: 1;
+  }
+
+  .tabs.request .tab-glider { transform: translateX(100%); }
+
+  .form-head h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+  }
+
+  .form-head p {
+    color: var(--slate);
+    font-size: 0.87rem;
+    margin-bottom: 28px;
+  }
+
+  .field {
+    margin-bottom: 18px;
+    position: relative;
+  }
+
+  .field label {
+    display: block;
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--slate-dim);
+    margin-bottom: 7px;
+  }
+
+  .field input,
+  .field select {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(147,160,188,0.22);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--off-white);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.92rem;
+    outline: none;
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+
+  .field select option { background: var(--navy-panel); color: var(--off-white); }
+
+  .field input::placeholder { color: var(--slate-dim); }
+
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--gold);
+    background: rgba(232,163,61,0.05);
+  }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .field small.err {
+    display: none;
+    color: var(--error);
+    font-size: 0.72rem;
+    margin-top: 6px;
+  }
+
+  .field.invalid input,
+  .field.invalid select { border-color: var(--error); }
+  .field.invalid small.err { display: block; }
+
+  .remember-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+
+  .remember-row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--slate);
+    cursor: pointer;
+  }
+
+  .remember-row input[type="checkbox"] {
+    width: 15px; height: 15px;
+    accent-color: var(--gold);
+    cursor: pointer;
+  }
+
+  .remember-row a {
+    font-size: 0.82rem;
+    color: var(--gold-soft);
+    text-decoration: none;
+  }
+
+  .submit-btn {
+    width: 100%;
+    background: var(--gold);
+    color: var(--navy-deep);
+    border: none;
+    padding: 14px 0;
+    border-radius: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(232,163,61,0.28);
+  }
+
+  .submit-btn:active { transform: translateY(0); }
+
+  .foot-note {
+    text-align: center;
+    color: var(--slate-dim);
+    font-size: 0.8rem;
+    margin-top: 20px;
+  }
+
+  .foot-note a { color: var(--gold-soft); text-decoration: none; cursor: pointer; }
+
+  .form-block { display: none; }
+  .form-block.active { display: block; animation: fadeUp 0.4s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 760px) {
+    .stage { grid-template-columns: 1fr; }
+    .brand { padding: 32px 28px; min-height: 220px; }
+    .shield-scene { height: 130px; }
+    .status-row { display: none; }
+    .panel { padding: 32px 26px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- LEFT BRAND PANEL -->
+  <div class="brand">
+    <div class="brand-mark">
+      <span class="dot"></span>
+      <span>HOSTELHUB</span>
+      <span class="tag">Admin</span>
+    </div>
+
+    <div class="shield-scene">
+      <div class="shield-ring">
+        <svg class="shield-svg" width="40" height="46" viewBox="0 0 40 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2 L37 9 V21 C37 32 30 40 20 44 C10 40 3 32 3 21 V9 Z" stroke="#E8A33D" stroke-width="2.5"/>
+          <path d="M13 22 L18 27 L27 16" stroke="#E8A33D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="brand-copy">
+      <h1>Restricted <em>staff</em><br>access.</h1>
+      <p>Manage hostel blocks, review applications, and approve room allocations from the admin console.</p>
+    </div>
+
+    <div class="status-row">
+      <div>
+        <span class="num">1020+</span>
+        <span class="label">Rooms Listed</span>
+      </div>
+      <div>
+        <span class="num">20</span>
+        <span class="label">Hostel Blocks</span>
+      </div>
+      <div>
+        <span class="num">24h</span>
+        <span class="label">Avg. Approval</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT FORM PANEL -->
+  <div class="panel">
+
+    <div class="tabs" id="tabs">
+      <div class="tab-glider"></div>
+      <button type="button" class="tab-btn active" data-target="signin">Sign In</button>
+      <button type="button" class="tab-btn" data-target="request">Request Access</button>
+    </div>
+
+    <!-- SIGN IN FORM -->
+    <div class="form-block active" id="signin">
+      <div class="form-head">
+        <h2>Admin sign in</h2>
+        <p>Enter your staff credentials to access the console.</p>
+      </div>
+
+      <form method="post" action="{% url 'admin_login_submit' %}" onsubmit="return handleSubmit(event, 'signin')" novalidate>
+        {% csrf_token %}
+        {% if login_error %}
+          <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">Incorrect staff ID/email or password.</p>
+        {% endif %}
+        <div class="field" id="admin-id-field">
+          <label for="admin-id">Staff ID or Email</label>
+          <input type="text" id="admin-id" name="admin_id" placeholder="e.g. admin@hostelhub.edu" required>
+          <small class="err">Please enter your staff ID or email.</small>
+        </div>
+
+        <div class="field" id="admin-pw-field">
+          <label for="admin-pw">Password</label>
+          <input type="password" id="admin-pw" name="admin_pw" placeholder="••••••••" required>
+          <small class="err">Password must be at least 6 characters.</small>
+        </div>
+
+        <div class="remember-row">
+          <label><input type="checkbox" id="admin-remember"> Keep me signed in</label>
+          <a href="#">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="submit-btn">Sign In</button>
+      </form>
+
+      <p class="foot-note">New staff member? <a onclick="switchTab('request')">Request access</a></p>
+    </div>
+
+    <!-- REQUEST ACCESS FORM -->
+    <div class="form-block" id="request">
+      <div class="form-head">
+        <h2>Request staff access</h2>
+        <p>Submit your details for an existing admin to review and approve.</p>
+      </div>
+
+      {% if request_submitted %}
+        <p style="color: var(--gold-soft); font-size: 0.88rem; line-height: 1.5; margin-bottom: 20px;">
+          Your request has been submitted. An existing admin will review it — you'll be able to sign in once it's approved.
+        </p>
+        <p class="foot-note">Back to <a onclick="switchTab('signin')">sign in</a></p>
+      {% else %}
+      <form method="post" action="{% url 'request_access' %}" onsubmit="return handleSubmit(event, 'request')" novalidate>
+        {% csrf_token %}
+        {% if request_access_error %}
+          <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">Please fix the errors below and try again.</p>
+        {% endif %}
+        <div class="field" id="reg-name-field">
+          <label for="reg-name">Full Name</label>
+          <input type="text" id="reg-name" name="full_name" placeholder="Full name" required>
+          <small class="err">Please enter your full name.</small>
+        </div>
+
+        <div class="row-2">
+          <div class="field" id="reg-staffid-field">
+            <label for="reg-staffid">Staff ID</label>
+            <input type="text" id="reg-staffid" name="staff_id" placeholder="e.g. STF-0042" required>
+            <small class="err">Required field.</small>
+          </div>
+          <div class="field" id="reg-dept-field">
+            <label for="reg-dept">Department</label>
+            <select id="reg-dept" name="department" required>
+              <option value="">Select</option>
+              <option>Student Affairs</option>
+              <option>Hostel Management</option>
+              <option>Bursary</option>
+              <option>IT Services</option>
+            </select>
+            <small class="err">Select a department.</small>
+          </div>
+        </div>
+
+        <div class="field" id="reg-email-field">
+          <label for="reg-email">Work Email</label>
+          <input type="email" id="reg-email" name="email" placeholder="you@hostelhub.edu" required>
+          <small class="err">Enter a valid email address.</small>
+        </div>
+
+        <div class="field" id="reg-pw-field">
+          <label for="reg-pw">Password</label>
+          <input type="password" id="reg-pw" name="password" placeholder="At least 6 characters" required>
+          <small class="err">Password must be at least 6 characters.</small>
+        </div>
+
+        <button type="submit" class="submit-btn">Submit Request</button>
+      </form>
+
+      <p class="foot-note">Already have access? <a onclick="switchTab('signin')">Sign in</a></p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const tabsEl = document.getElementById('tabs');
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const formBlocks = document.querySelectorAll('.form-block');
+
+  function switchTab(target) {
+    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.target === target));
+    formBlocks.forEach(f => f.classList.toggle('active', f.id === target));
+    tabsEl.classList.toggle('request', target === 'request');
+  }
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.target));
+  });
+
+  {% if active_tab == "request" %}
+  switchTab('request');
+  {% endif %}
+
+  function validateField(el, condition) {
+    const field = el.closest('.field');
+    if (!condition) {
+      field.classList.add('invalid');
+      return false;
+    }
+    field.classList.remove('invalid');
+    return true;
+  }
+
+  function handleSubmit(e, type) {
+    let valid = true;
+
+    if (type === 'signin') {
+      const id = document.getElementById('admin-id');
+      const pw = document.getElementById('admin-pw');
+      valid &= validateField(id, id.value.trim().length > 0);
+      valid &= validateField(pw, pw.value.length >= 6);
+    } else {
+      const name = document.getElementById('reg-name');
+      const staffid = document.getElementById('reg-staffid');
+      const dept = document.getElementById('reg-dept');
+      const email = document.getElementById('reg-email');
+      const pw = document.getElementById('reg-pw');
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+
+      valid &= validateField(name, name.value.trim().length > 0);
+      valid &= validateField(staffid, staffid.value.trim().length > 0);
+      valid &= validateField(dept, dept.value !== '');
+      valid &= validateField(email, emailOk);
+      valid &= validateField(pw, pw.value.length >= 6);
+    }
+
+    if (!valid) {
+      e.preventDefault();
+      return false;
+    }
+    // valid — let the form actually submit to Django
+    return true;
+  }
+</script>
+
+</body>
+</html>

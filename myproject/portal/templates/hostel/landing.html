@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HostelHub — Find Your Room</title>
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dtjprrlkt/image/upload/v1786636209/Create_favicon_for_HostelHub_202608131649_zgftx0.jpg">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  :root {
+    --navy-deep: #14213D;
+    --navy-panel: #1E2F52;
+    --navy-panel-2: #253A63;
+    --gold: #E8A33D;
+    --gold-soft: #F3C374;
+    --off-white: #F4F1EA;
+    --slate: #93A0BC;
+    --slate-dim: #5D6A8C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--navy-deep);
+    color: var(--off-white);
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- NAV ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px clamp(24px, 6vw, 72px);
+    background: rgba(20,33,61,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(232,163,61,0.12);
+  }
+
+  .brand-mark { display: flex; align-items: center; gap: 10px; }
+  .brand-mark .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 10px var(--gold);
+  }
+  .brand-mark span {
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.03em;
+    color: var(--slate);
+  }
+
+  .nav-links { display: flex; gap: 32px; font-size: 0.88rem; color: var(--slate); }
+  .nav-links a:hover { color: var(--gold-soft); }
+
+  .nav-cta {
+    background: var(--gold);
+    color: var(--navy-deep);
+    font-weight: 600;
+    font-size: 0.86rem;
+    padding: 10px 20px;
+    border-radius: 9px;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+  .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+  .nav-cta-group { display: flex; align-items: center; gap: 10px; }
+  .nav-cta-outline {
+    border: 1px solid rgba(232,163,61,0.4);
+    color: var(--gold-soft);
+    font-weight: 600;
+    font-size: 0.86rem;
+    padding: 9px 18px;
+    border-radius: 9px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .nav-cta-outline:hover { border-color: var(--gold); background: rgba(232,163,61,0.08); }
+
+  .nav-toggle { display: none; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    position: relative;
+    padding: clamp(60px, 10vw, 120px) clamp(24px, 6vw, 72px) 80px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 40px;
+    align-items: center;
+    background:
+      radial-gradient(circle at 85% 15%, rgba(232,163,61,0.14), transparent 55%),
+      linear-gradient(160deg, var(--navy-panel-2) 0%, var(--navy-deep) 60%);
+  }
+
+  .hero-copy .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+    margin-bottom: 20px;
+  }
+  .hero-copy .eyebrow::before {
+    content: "";
+    width: 18px; height: 1px;
+    background: var(--gold);
+  }
+
+  .hero-copy h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    line-height: 1.08;
+    margin-bottom: 20px;
+  }
+  .hero-copy h1 em { font-style: normal; color: var(--gold-soft); }
+
+  .hero-copy p {
+    color: var(--slate);
+    font-size: 1.02rem;
+    line-height: 1.6;
+    max-width: 460px;
+    margin-bottom: 32px;
+  }
+
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 44px; }
+
+  .btn-primary {
+    background: var(--gold);
+    color: var(--navy-deep);
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 14px 26px;
+    border-radius: 10px;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+
+  .btn-ghost {
+    border: 1px solid rgba(147,160,188,0.3);
+    color: var(--off-white);
+    font-size: 0.92rem;
+    padding: 14px 26px;
+    border-radius: 10px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .btn-ghost:hover { border-color: var(--gold); background: rgba(232,163,61,0.06); }
+
+  .stat-row { display: flex; gap: 36px; }
+  .stat-row div { display: flex; flex-direction: column; gap: 2px; }
+  .stat-row .num { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--gold-soft); }
+  .stat-row .label { font-size: 0.72rem; color: var(--slate-dim); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* ---------- HERO SIGNATURE: key ring of hostel blocks ---------- */
+  .key-ring {
+    position: relative;
+    height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring-core {
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: var(--navy-deep);
+    border: 1px solid rgba(232,163,61,0.25);
+    box-shadow: inset 0 0 26px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .ring-core .keyhole-shape {
+    width: 20px; height: 20px;
+    background: var(--gold);
+    border-radius: 50%;
+    box-shadow: 0 26px 0 -4px var(--gold), 0 0 18px 2px rgba(232,163,61,0.5);
+    clip-path: polygon(50% 0%, 100% 60%, 78% 60%, 78% 100%, 22% 100%, 22% 60%, 0% 60%);
+  }
+
+  .orbit {
+    position: absolute;
+    inset: 0;
+    animation: spin 26s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .tag {
+    position: absolute;
+    width: 92px;
+    padding: 10px 8px;
+    background: var(--navy-panel);
+    border: 1px solid rgba(232,163,61,0.2);
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.3);
+    animation: counter-spin 26s linear infinite;
+  }
+  @keyframes counter-spin { to { transform: rotate(-360deg); } }
+
+  .tag .block { font-family: 'Fraunces', serif; font-size: 0.95rem; color: var(--gold-soft); }
+  .tag .stat { font-size: 0.66rem; color: var(--slate-dim); }
+
+  .tag-a { top: 0; left: 50%; transform: translateX(-50%); }
+  .tag-b { top: 25%; right: 0; }
+  .tag-c { bottom: 25%; right: 4%; }
+  .tag-d { bottom: 0; left: 50%; transform: translateX(-50%); }
+  .tag-e { bottom: 25%; left: 4%; }
+  .tag-f { top: 25%; left: 0; }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .key-ring { height: 300px; }
+    .tag { width: 76px; padding: 8px 6px; }
+  }
+
+  /* ---------- HOW IT WORKS ---------- */
+  section { padding: 90px clamp(24px, 6vw, 72px); }
+
+  .section-head { max-width: 520px; margin-bottom: 56px; }
+  .section-head .eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+    margin-bottom: 12px;
+    display: block;
+  }
+  .section-head h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(1.7rem, 3vw, 2.3rem);
+    line-height: 1.15;
+  }
+  .section-head p { color: var(--slate); margin-top: 12px; font-size: 0.95rem; }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+
+  .step {
+    background: var(--navy-panel);
+    border: 1px solid rgba(232,163,61,0.1);
+    border-radius: 16px;
+    padding: 32px 26px;
+    position: relative;
+  }
+  .step .step-num {
+    font-family: 'Fraunces', serif;
+    font-size: 0.85rem;
+    color: var(--gold);
+    border: 1px solid rgba(232,163,61,0.3);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .step h3 { font-family: 'Fraunces', serif; font-size: 1.15rem; margin-bottom: 10px; }
+  .step p { color: var(--slate); font-size: 0.88rem; line-height: 1.55; }
+
+  @media (max-width: 820px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- FEATURED HOSTELS ---------- */
+  .hostel-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .hostel-card {
+    background: var(--navy-panel);
+    border: 1px solid rgba(232,163,61,0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+  .hostel-card:hover { transform: translateY(-4px); border-color: rgba(232,163,61,0.3); }
+
+  .hostel-thumb {
+    height: 160px;
+    position: relative;
+    background: linear-gradient(135deg, var(--navy-panel-2), var(--navy-deep));
+    overflow: hidden;
+  }
+  .hostel-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(0.9) brightness(0.85);
+  }
+  .thumb-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(20,33,61,0.75);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(232,163,61,0.4);
+    color: var(--gold-soft);
+    font-family: 'Fraunces', serif;
+    font-size: 0.85rem;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hostel-body { padding: 20px; }
+  .hostel-body .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .hostel-body h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; }
+  .hostel-body .price { color: var(--gold-soft); font-size: 0.85rem; font-weight: 600; }
+  .hostel-body p { color: var(--slate); font-size: 0.82rem; margin-bottom: 14px; }
+  .hostel-body .avail { font-size: 0.72rem; color: var(--slate-dim); letter-spacing: 0.03em; text-transform: uppercase; }
+
+  @media (max-width: 820px) {
+    .hostel-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- CTA ---------- */
+  .cta {
+    background: linear-gradient(160deg, var(--navy-panel-2), var(--navy-deep));
+    border-radius: 20px;
+    margin: 0 clamp(24px, 6vw, 72px) 90px;
+    padding: clamp(48px, 8vw, 80px);
+    text-align: center;
+    border: 1px solid rgba(232,163,61,0.14);
+  }
+  .cta h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin-bottom: 16px;
+  }
+  .cta h2 em { font-style: normal; color: var(--gold-soft); }
+  .cta p { color: var(--slate); margin-bottom: 30px; }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    padding: 40px clamp(24px, 6vw, 72px);
+    border-top: 1px solid rgba(232,163,61,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    color: var(--slate-dim);
+    font-size: 0.8rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  @media (max-width: 760px) {
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand-mark">
+    <span class="dot"></span>
+    <span>HOSTELHUB</span>
+  </div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#hostels">Hostels</a>
+    <a href="#">Complaints</a>
+  </div>
+  <div class="nav-cta-group">
+    <a href="{% url 'admin_login' %}" class="nav-cta-outline">Staff Login</a>
+    <a href="{% url 'login_register' %}" class="nav-cta">Log In</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">Student Accommodation</span>
+    <h1>Your room is <em>one key</em><br>away.</h1>
+    <p>Browse hostel blocks, apply for a room, and track your allocation — all without a single queue at the porter's lodge.</p>
+    <div class="hero-actions">
+      <a href="{% url 'login_register' %}" class="btn-primary">Find a Room</a>
+      <a href="#how" class="btn-ghost">See How It Works</a>
+    </div>
+    <div class="stat-row">
+      <div><span class="num">1020+</span><span class="label">Rooms Listed</span></div>
+      <div><span class="num">20</span><span class="label">Hostel Blocks</span></div>
+      <div><span class="num">24h</span><span class="label">Avg. Approval</span></div>
+    </div>
+  </div>
+
+  <div class="key-ring">
+    <div class="ring-core"><div class="keyhole-shape"></div></div>
+    <div class="orbit">
+      <div class="tag tag-a"><div class="block">Block A</div><div class="stat">46 vacant</div></div>
+      <div class="tag tag-b"><div class="block">Block B</div><div class="stat">44 vacant</div></div>
+      <div class="tag tag-c"><div class="block">Block C</div><div class="stat">47 vacant</div></div>
+      <div class="tag tag-d"><div class="block">Block D</div><div class="stat">48 vacant</div></div>
+      <div class="tag tag-e"><div class="block">Block E</div><div class="stat">45 vacant</div></div>
+      <div class="tag tag-f"><div class="block">Block F</div><div class="stat">46 vacant</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="section-head">
+    <span class="eyebrow">The Process</span>
+    <h2>Three steps between you and a bed.</h2>
+    <p>No forms at the office, no lost paperwork — everything happens on your dashboard.</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h3>Browse blocks</h3>
+      <p>Filter hostels by price, room type, and availability before you commit to anything.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h3>Apply for a room</h3>
+      <p>Submit your request in a few taps. No need to visit the hostel office in person.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h3>Get your key</h3>
+      <p>Track approval on your dashboard, then collect your key once it's confirmed.</p>
+    </div>
+  </div>
+</section>
+
+<section id="hostels">
+  <div class="section-head">
+    <span class="eyebrow">Featured Blocks</span>
+    <h2>A few rooms open right now.</h2>
+  </div>
+  <div class="hostel-grid">
+    <div class="hostel-card">
+      <div class="hostel-thumb">
+        <img src="https://picsum.photos/seed/hostelblockA/600/400" alt="Block A room" loading="lazy">
+        <span class="thumb-badge">A</span>
+      </div>
+      <div class="hostel-body">
+        <div class="row"><h3>Block A</h3><span class="price">₦60,000</span></div>
+        <p>Shared rooms, 4 per unit — closest to the main gate.</p>
+        <span class="avail">46 rooms vacant</span>
+      </div>
+    </div>
+    <div class="hostel-card">
+      <div class="hostel-thumb">
+        <img src="https://picsum.photos/seed/hostelblockB/600/400" alt="Block B room" loading="lazy">
+        <span class="thumb-badge">B</span>
+      </div>
+      <div class="hostel-body">
+        <div class="row"><h3>Block B</h3><span class="price">₦75,000</span></div>
+        <p>Single rooms with private bathroom — quiet study wing.</p>
+        <span class="avail">44 rooms vacant</span>
+      </div>
+    </div>
+    <div class="hostel-card">
+      <div class="hostel-thumb">
+        <img src="https://picsum.photos/seed/hostelblockC/600/400" alt="Block C room" loading="lazy">
+        <span class="thumb-badge">C</span>
+      </div>
+      <div class="hostel-body">
+        <div class="row"><h3>Block C</h3><span class="price">₦65,000</span></div>
+        <p>Shared rooms, 3 per unit — near the cafeteria and gym.</p>
+        <span class="avail">47 rooms vacant</span>
+      </div>
+    </div>
+    <div class="hostel-card">
+      <div class="hostel-thumb">
+        <img src="https://picsum.photos/seed/hostelblockD/600/400" alt="Block D room" loading="lazy">
+        <span class="thumb-badge">D</span>
+      </div>
+      <div class="hostel-body">
+        <div class="row"><h3>Block D</h3><span class="price">₦80,000</span></div>
+        <p>Single rooms with balcony — furthest from noise, best for finals week.</p>
+        <span class="avail">48 rooms vacant</span>
+      </div>
+    </div>
+    <div class="hostel-card">
+      <div class="hostel-thumb">
+        <img src="https://picsum.photos/seed/hostelblockE/600/400" alt="Block E room" loading="lazy">
+        <span class="thumb-badge">E</span>
+      </div>
+      <div class="hostel-body">
+        <div class="row"><h3>Block E</h3><span class="price">₦90,000</span></div>
+        <p>Shared rooms, 2 per unit — newest block on campus.</p>
+        <span class="avail">45 rooms vacant</span>
+      </div>
+    </div>
+    <div class="hostel-card">
+      <div class="hostel-thumb">
+        <img src="https://picsum.photos/seed/hostelblockF/600/400" alt="Block F room" loading="lazy">
+        <span class="thumb-badge">F</span>
+      </div>
+      <div class="hostel-body">
+        <div class="row"><h3>Block F</h3><span class="price">₦70,000</span></div>
+        <p>Shared rooms, 4 per unit — quiet corner block with its own courtyard.</p>
+        <span class="avail">46 rooms vacant</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <h2>Ready to find <em>your</em> room?</h2>
+  <p>Create an account and see live availability across every block.</p>
+  <a href="{% url 'login_register' %}" class="btn-primary">Get Started</a>
+</section>
+
+<footer>
+  <span>© 2026 HostelHub — Student Accommodation Portal</span>
+  <span>Built with Django</span>
+</footer>
+
+</body>
+</html>

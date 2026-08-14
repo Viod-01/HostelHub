@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+
+# Secrets
+.env
+
+# Local database and generated static files
+db.sqlite3
+staticfiles/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

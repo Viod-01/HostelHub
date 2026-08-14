@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HostelHub—Apply for Room {{ room.room_number }}</title>
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dtjprrlkt/image/upload/v1786636209/Create_favicon_for_HostelHub_202608131649_zgftx0.jpg">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  :root {
+    --navy-deep: #14213D;
+    --navy-panel: #1E2F52;
+    --navy-panel-2: #253A63;
+    --gold: #E8A33D;
+    --gold-soft: #F3C374;
+    --off-white: #F4F1EA;
+    --slate: #93A0BC;
+    --slate-dim: #5D6A8C;
+    --green: #7FBF8F;
+    --error: #E8636B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--navy-deep);
+    color: var(--off-white);
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px clamp(24px, 6vw, 72px);
+    background: rgba(20,33,61,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(232,163,61,0.12);
+  }
+  .brand-mark { display: flex; align-items: center; gap: 10px; }
+  .brand-mark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+  .brand-mark span { font-family: 'Fraunces', serif; font-size: 1.05rem; letter-spacing: 0.03em; color: var(--slate); }
+  .nav-links { display: flex; gap: 32px; font-size: 0.88rem; color: var(--slate); }
+  .nav-links a:hover { color: var(--gold-soft); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--gold); color: var(--navy-deep);
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  @media (max-width: 760px) { .nav-links { display: none; } }
+
+  .crumb { font-size: 0.78rem; color: var(--slate-dim); padding: 28px clamp(24px, 6vw, 72px) 0; }
+  .crumb a:hover { color: var(--gold-soft); }
+
+  .apply-wrap {
+    display: grid;
+    grid-template-columns: 1.3fr 0.9fr;
+    gap: 40px;
+    padding: 20px clamp(24px, 6vw, 72px) 90px;
+    align-items: start;
+  }
+
+  .apply-head h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(1.7rem, 3vw, 2.2rem); margin-bottom: 8px; }
+  .apply-head p { color: var(--slate); font-size: 0.9rem; margin-bottom: 32px; }
+
+  .stepper { display: flex; gap: 0; margin-bottom: 34px; }
+  .step-item { flex: 1; text-align: left; position: relative; padding-left: 14px; }
+  .step-item::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+    background: rgba(147,160,188,0.2); border-radius: 2px;
+  }
+  .step-item.active::before { background: var(--gold); }
+  .step-item.done::before { background: var(--green); }
+  .step-item .step-title { font-size: 0.78rem; letter-spacing: 0.02em; color: var(--slate-dim); text-transform: uppercase; }
+  .step-item.active .step-title, .step-item.done .step-title { color: var(--off-white); }
+
+  .form-card { background: var(--navy-panel); border: 1px solid rgba(232,163,61,0.1); border-radius: 16px; padding: 32px; }
+
+  .form-section { display: none; }
+  .form-section.active { display: block; animation: fadeUp 0.35s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .form-section h2 { font-family: 'Fraunces', serif; font-size: 1.15rem; margin-bottom: 4px; }
+  .form-section .sub { color: var(--slate-dim); font-size: 0.84rem; margin-bottom: 24px; }
+
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 0.76rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--slate-dim); margin-bottom: 7px; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(147,160,188,0.22);
+    border-radius: 10px; padding: 12px 14px; color: var(--off-white);
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.92rem; outline: none;
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+  .field input[readonly] { color: var(--slate); background: rgba(255,255,255,0.015); }
+  .field select option { background: var(--navy-panel); }
+  .field input::placeholder, .field textarea::placeholder { color: var(--slate-dim); }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); background: rgba(232,163,61,0.05); }
+  .field textarea { resize: vertical; min-height: 90px; }
+  .field small.err { display: none; color: var(--error); font-size: 0.72rem; margin-top: 6px; }
+  .field.invalid input, .field.invalid select { border-color: var(--error); }
+  .field.invalid small.err { display: block; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .radio-group { display: flex; gap: 12px; flex-wrap: wrap; }
+  .radio-card {
+    flex: 1; min-width: 140px; border: 1px solid rgba(147,160,188,0.22); border-radius: 10px;
+    padding: 14px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .radio-card input { display: none; }
+  .radio-card .rc-title { font-family: 'Fraunces', serif; font-size: 0.95rem; margin-bottom: 2px; }
+  .radio-card .rc-sub { font-size: 0.74rem; color: var(--slate-dim); }
+  .radio-card.checked { border-color: var(--gold); background: rgba(232,163,61,0.06); }
+
+  .form-actions { display: flex; justify-content: space-between; margin-top: 28px; }
+  .btn-gold {
+    background: var(--gold); color: var(--navy-deep); font-weight: 600; font-size: 0.88rem;
+    padding: 12px 22px; border-radius: 9px; border: none; cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+  .btn-ghost {
+    border: 1px solid rgba(147,160,188,0.3); color: var(--off-white); font-size: 0.88rem;
+    padding: 12px 22px; border-radius: 9px; background: transparent; cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .btn-ghost:hover { border-color: var(--gold); background: rgba(232,163,61,0.06); }
+
+  .review-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(232,163,61,0.08); font-size: 0.88rem; }
+  .review-row span:first-child { color: var(--slate-dim); }
+  .review-row:last-child { border-bottom: none; }
+
+  .agree-row { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; font-size: 0.82rem; color: var(--slate); }
+  .agree-row input { margin-top: 3px; }
+
+  .form-error { color: var(--error); font-size: 0.85rem; margin-bottom: 18px; }
+
+  .summary-card {
+    position: sticky; top: 100px;
+    background: linear-gradient(160deg, var(--navy-panel-2), var(--navy-deep));
+    border: 1px solid rgba(232,163,61,0.2); border-radius: 18px; overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+  }
+  .summary-img { height: 150px; }
+  .summary-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .summary-body { padding: 24px; }
+  .summary-body .room-no { font-family: 'Fraunces', serif; font-size: 1.5rem; margin-bottom: 4px; }
+  .summary-body .block-line { color: var(--slate); font-size: 0.85rem; margin-bottom: 20px; }
+
+  .summary-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .summary-meta div { display: flex; flex-direction: column; gap: 2px; }
+  .summary-meta .num { font-family: 'Fraunces', serif; font-size: 1.05rem; color: var(--gold-soft); }
+  .summary-meta .label { font-size: 0.66rem; color: var(--slate-dim); letter-spacing: 0.03em; text-transform: uppercase; }
+
+  .summary-price { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--gold-soft); border-top: 1px dashed rgba(232,163,61,0.25); padding-top: 16px; }
+  .summary-price small { font-family: 'Space Grotesk', sans-serif; font-size: 0.7rem; color: var(--slate-dim); }
+
+  @media (max-width: 900px) {
+    .apply-wrap { grid-template-columns: 1fr; }
+    .summary-card { position: static; }
+    .row-2 { grid-template-columns: 1fr; }
+    .stepper { flex-direction: column; gap: 10px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
+  <div class="nav-links">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <a href="{% url 'listing' %}">Hostels</a>
+    <a href="#">Complaints</a>
+  </div>
+  <span class="avatar">{{ request.user.username|slice:":2"|upper }}</span>
+</nav>
+
+<div class="crumb"><a href="{% url 'dashboard' %}">Dashboard</a> / <a href="{% url 'detail' room.room_number %}">Room {{ room.room_number }}</a> / Apply</div>
+
+<div class="apply-wrap">
+
+  <div class="apply-head-col">
+    <div class="apply-head">
+      <h1>Apply for Room {{ room.room_number }}</h1>
+      <p>Fill in your details, confirm the room, and submit — you'll see the status on your dashboard.</p>
+    </div>
+
+    <div class="stepper" id="stepper">
+      <div class="step-item active" data-step="1"><div class="step-title">01 · Your Details</div></div>
+      <div class="step-item" data-step="2"><div class="step-title">02 · Preferences</div></div>
+      <div class="step-item" data-step="3"><div class="step-title">03 · Review &amp; Submit</div></div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <p class="form-error">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
+
+    <!-- One real form spans all three visual "steps" — the stepper is
+         just showing/hiding sections of it, not separate submissions. -->
+    <form method="post" action="{% url 'booking' room.room_number %}">
+      {% csrf_token %}
+      <div class="form-card">
+
+        <!-- STEP 1 -->
+        <div class="form-section active" data-section="1">
+          <h2>Your details</h2>
+          <p class="sub">This is pulled from your profile — confirm it's correct.</p>
+
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" value="{{ request.user.get_full_name }}" readonly>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label>Matric Number</label>
+              <input type="text" value="{{ student.matric_number }}" readonly>
+            </div>
+            <div class="field">
+              <label>Level</label>
+              <input type="text" value="{{ student.level }}" readonly>
+            </div>
+          </div>
+          <div class="field" id="f-phone">
+            <label>Phone Number</label>
+            <input type="tel" name="phone" value="{{ student.phone }}" placeholder="080X XXX XXXX" required>
+            <small class="err">Enter a valid phone number.</small>
+          </div>
+
+          <div class="form-actions">
+            <span></span>
+            <button type="button" class="btn-gold" onclick="nextStep(1)">Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="form-section" data-section="2">
+          <h2>Preferences</h2>
+          <p class="sub">Anything else the hostel office should know.</p>
+
+          <div class="field">
+            <label>Move-in Session</label>
+            <div class="radio-group">
+              <label class="radio-card checked" onclick="selectRadio(this)">
+                <input type="radio" name="session" value="2026/2027" checked>
+                <div class="rc-title">2026/2027</div>
+                <div class="rc-sub">Current session</div>
+              </label>
+              <label class="radio-card" onclick="selectRadio(this)">
+                <input type="radio" name="session" value="2027/2028">
+                <div class="rc-title">2027/2028</div>
+                <div class="rc-sub">Next session</div>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Special Requests (optional)</label>
+            <textarea name="special_requests" placeholder="e.g. any accessibility needs, roommate request..."></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-ghost" onclick="prevStep(2)">Back</button>
+            <button type="button" class="btn-gold" onclick="nextStep(2)">Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="form-section" data-section="3">
+          <h2>Review &amp; submit</h2>
+          <p class="sub">Double-check everything before sending your application.</p>
+
+          <div class="review-row"><span>Room</span><span>{{ room.room_number }}, {{ room.hostel.name }}</span></div>
+          <div class="review-row"><span>Type</span><span>{{ room.hostel.get_room_type_display }} &middot; {{ room.capacity }} {{ room.capacity|pluralize:"bed,beds" }}</span></div>
+          <div class="review-row"><span>Price</span><span>₦{{ room.hostel.price_per_session|floatformat:0 }} / session</span></div>
+          <div class="review-row"><span>Session</span><span id="review-session">2026/2027</span></div>
+
+          <div class="agree-row">
+            <input type="checkbox" id="agree" required>
+            <label for="agree">I confirm the details above are accurate and I agree to the hostel's accommodation terms.</label>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-ghost" onclick="prevStep(3)">Back</button>
+            <button type="submit" class="btn-gold" onclick="return confirmSubmit()">Submit Application</button>
+          </div>
+        </div>
+
+      </div>
+    </form>
+  </div>
+
+  <!-- SIDEBAR SUMMARY -->
+  <div class="summary-card">
+    <div class="summary-img">
+      <img src="https://picsum.photos/seed/{{ room.room_number }}/500/300" alt="Room {{ room.room_number }}">
+    </div>
+    <div class="summary-body">
+      <div class="room-no">{{ room.room_number }}</div>
+      <div class="block-line">{{ room.hostel.name }}{% if room.floor %} &middot; {{ room.floor }}{% endif %}</div>
+
+      <div class="summary-meta">
+        <div><span class="num">{{ room.hostel.get_room_type_display }}</span><span class="label">Room Type</span></div>
+        <div><span class="num">{{ room.capacity }}</span><span class="label">Total Beds</span></div>
+        <div><span class="num">{{ room.vacant_beds }}</span><span class="label">Vacant Beds</span></div>
+        <div><span class="num">{{ room.floor|default:"—" }}</span><span class="label">Floor</span></div>
+      </div>
+
+      <div class="summary-price">₦{{ room.hostel.price_per_session|floatformat:0 }}<small> / session</small></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showStep(n) {
+    document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+    document.querySelector(`.form-section[data-section="${n}"]`).classList.add('active');
+    document.querySelectorAll('.step-item').forEach(s => {
+      const step = parseInt(s.dataset.step);
+      s.classList.toggle('active', step === n);
+      s.classList.toggle('done', step < n);
+    });
+  }
+
+  function validateField(el, condition) {
+    const field = el.closest('.field');
+    field.classList.toggle('invalid', !condition);
+    return condition;
+  }
+
+  function nextStep(current) {
+    if (current === 1) {
+      const phone = document.querySelector('#f-phone input');
+      if (!validateField(phone, phone.value.trim().length >= 10)) return;
+    }
+    showStep(current + 1);
+  }
+
+  function prevStep(current) { showStep(current - 1); }
+
+  function selectRadio(label) {
+    label.querySelectorAll('input').forEach(i => i.checked = true);
+    label.parentElement.querySelectorAll('.radio-card').forEach(c => c.classList.remove('checked'));
+    label.classList.add('checked');
+    document.getElementById('review-session').textContent = label.querySelector('.rc-title').textContent;
+  }
+
+  // Final safety check before the real POST fires — the "agree" checkbox
+  // isn't sent to the server, it's purely a client-side confirmation gate.
+  function confirmSubmit() {
+    const agree = document.getElementById('agree');
+    if (!agree.checked) {
+      alert('Please confirm the accommodation terms before submitting.');
+      return false;
+    }
+    return true; // lets the form actually submit to Django
+  }
+</script>
+
+</body>
+</html>

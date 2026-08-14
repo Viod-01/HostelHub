@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HostelHub—Dashboard</title>
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dtjprrlkt/image/upload/v1786636209/Create_favicon_for_HostelHub_202608131649_zgftx0.jpg">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  :root {
+    --navy-deep: #14213D;
+    --navy-panel: #1E2F52;
+    --navy-panel-2: #253A63;
+    --gold: #E8A33D;
+    --gold-soft: #F3C374;
+    --off-white: #F4F1EA;
+    --slate: #93A0BC;
+    --slate-dim: #5D6A8C;
+    --green: #7FBF8F;
+    --amber: #E8C33D;
+    --red: #E8636B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--navy-deep);
+    color: var(--off-white);
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- NAV ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px clamp(24px, 6vw, 72px);
+    background: rgba(20,33,61,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(232,163,61,0.12);
+  }
+  .brand-mark { display: flex; align-items: center; gap: 10px; }
+  .brand-mark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+  .brand-mark span { font-family: 'Fraunces', serif; font-size: 1.05rem; letter-spacing: 0.03em; color: var(--slate); }
+  .nav-links { display: flex; gap: 32px; font-size: 0.88rem; color: var(--slate); }
+  .nav-links a:hover { color: var(--gold-soft); }
+  .nav-links a.active { color: var(--gold-soft); }
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--gold);
+    color: var(--navy-deep);
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  @media (max-width: 760px) { .nav-links { display: none; } }
+
+  /* ---------- WELCOME HEADER ---------- */
+  .dash-head {
+    padding: 44px clamp(24px, 6vw, 72px) 8px;
+    display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;
+  }
+  .dash-head h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(1.7rem, 3vw, 2.2rem); margin-bottom: 6px; }
+  .dash-head p { color: var(--slate); font-size: 0.9rem; }
+  .browse-link {
+    background: var(--gold);
+    color: var(--navy-deep);
+    font-weight: 600;
+    font-size: 0.86rem;
+    padding: 11px 20px;
+    border-radius: 9px;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+  .browse-link:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+
+  /* ---------- LAYOUT ---------- */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 24px;
+    padding: 28px clamp(24px, 6vw, 72px) 90px;
+    align-items: start;
+  }
+
+  .card {
+    background: var(--navy-panel);
+    border: 1px solid rgba(232,163,61,0.1);
+    border-radius: 16px;
+    padding: 26px;
+  }
+  .card h2 { font-family: 'Fraunces', serif; font-size: 1.05rem; margin-bottom: 4px; }
+  .card .sub { color: var(--slate-dim); font-size: 0.82rem; margin-bottom: 20px; }
+
+  /* status banner */
+  .status-card { margin-bottom: 24px; position: relative; overflow: hidden; }
+  .status-card.pending { border-color: rgba(232,195,61,0.3); }
+  .status-card.approved { border-color: rgba(127,191,143,0.35); }
+  .status-card.rejected { border-color: rgba(232,99,107,0.35); }
+
+  .status-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .status-badge {
+    font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 6px 12px; border-radius: 20px; font-weight: 600;
+  }
+  .status-badge.pending { background: rgba(232,195,61,0.14); color: var(--amber); }
+  .status-badge.approved { background: rgba(127,191,143,0.14); color: var(--green); }
+  .status-badge.rejected { background: rgba(232,99,107,0.14); color: var(--red); }
+
+  .status-room {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    margin-bottom: 4px;
+  }
+  .status-meta { color: var(--slate); font-size: 0.86rem; margin-bottom: 20px; }
+
+  .status-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn-gold {
+    background: var(--gold); color: var(--navy-deep); font-weight: 600; font-size: 0.85rem;
+    padding: 11px 18px; border-radius: 9px; border: none; cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.25s ease;
+  }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+  .btn-outline {
+    border: 1px solid rgba(147,160,188,0.3); color: var(--off-white); font-size: 0.85rem;
+    padding: 11px 18px; border-radius: 9px; background: transparent; cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .btn-outline:hover { border-color: var(--gold); background: rgba(232,163,61,0.06); }
+
+  .timeline { display: flex; gap: 0; margin-top: 24px; }
+  .tl-step { flex: 1; text-align: center; position: relative; }
+  .tl-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: rgba(147,160,188,0.25);
+    margin: 0 auto 8px;
+    position: relative; z-index: 2;
+  }
+  .tl-step.done .tl-dot { background: var(--green); }
+  .tl-step.current .tl-dot { background: var(--amber); box-shadow: 0 0 0 4px rgba(232,195,61,0.18); }
+  .tl-step.rejected .tl-dot { background: var(--red); }
+  .tl-line {
+    position: absolute; top: 6px; left: -50%; width: 100%; height: 2px;
+    background: rgba(147,160,188,0.2); z-index: 1;
+  }
+  .tl-step:first-child .tl-line { display: none; }
+  .tl-step.done .tl-line { background: var(--green); }
+  .tl-label { font-size: 0.68rem; color: var(--slate-dim); }
+  .tl-step.done .tl-label, .tl-step.current .tl-label, .tl-step.rejected .tl-label { color: var(--off-white); }
+
+  .empty-state { text-align: center; padding: 30px 10px; }
+  .empty-state p { color: var(--slate); font-size: 0.88rem; margin-bottom: 18px; }
+
+  /* profile card */
+  .profile-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .profile-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--gold);
+    color: var(--navy-deep);
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .profile-name { font-family: 'Fraunces', serif; font-size: 1.1rem; }
+  .profile-matric { font-size: 0.8rem; color: var(--slate-dim); }
+
+  .info-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 22px; }
+  .info-row { display: flex; justify-content: space-between; font-size: 0.86rem; }
+  .info-row span:first-child { color: var(--slate-dim); }
+
+  .edit-btn {
+    display: block;
+    width: 100%; text-align: center;
+    border: 1px solid rgba(147,160,188,0.3);
+    padding: 12px 0; border-radius: 9px; font-size: 0.85rem;
+    line-height: 1.4;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .edit-btn:hover { border-color: var(--gold); background: rgba(232,163,61,0.06); }
+
+  /* quick links */
+  .quick-links { display: flex; flex-direction: column; gap: 10px; }
+  .quick-link {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--navy-panel-2);
+    border-radius: 10px;
+    font-size: 0.86rem;
+    transition: transform 0.15s ease;
+  }
+  .quick-link:hover { transform: translateX(3px); }
+  .quick-link .arrow { color: var(--gold-soft); }
+
+  /* notice list */
+  .notice { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid rgba(232,163,61,0.08); }
+  .notice:last-child { border-bottom: none; padding-bottom: 0; }
+  .notice-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); margin-top: 6px; flex-shrink: 0; }
+  .notice-text { font-size: 0.84rem; color: var(--slate); line-height: 1.5; }
+  .notice-time { font-size: 0.72rem; color: var(--slate-dim); margin-top: 3px; }
+
+  .side-col { display: flex; flex-direction: column; gap: 24px; }
+
+  @media (max-width: 900px) {
+    .dash-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
+  <div class="nav-links">
+    <a href="{% url 'dashboard' %}" class="active">Dashboard</a>
+    <a href="{% url 'listing' %}">Hostels</a>
+    <a href="#">Complaints</a>
+  </div>
+  <div class="nav-right">
+    <span class="avatar">{{ initials }}</span>
+  </div>
+</nav>
+
+<div class="dash-head">
+  <div>
+    <h1>Welcome back, {{ full_name|default:request.user.username }}</h1>
+    <p>{{ student.matric_number }} &middot; {{ student.level }} Level</p>
+  </div>
+  <a href="{% url 'listing' %}" class="browse-link">Browse Rooms</a>
+</div>
+
+<div class="dash-grid">
+
+  <!-- LEFT: status + notices -->
+  <div class="main-col">
+
+    {% if booking %}
+    <div class="card status-card {{ booking.status }}">
+      <div class="status-top">
+        <div>
+          <div class="status-room">Room {{ booking.room.room_number }}, {{ booking.room.hostel.name }}</div>
+          <div class="status-meta">{{ booking.room.hostel.get_room_type_display }} room &middot; ₦{{ booking.room.hostel.price_per_session|floatformat:0 }} / session</div>
+        </div>
+        <span class="status-badge {{ booking.status }}">{{ booking.get_status_display }}</span>
+      </div>
+
+      {% if booking.status == 'pending' %}
+        <p style="color: var(--slate); font-size: 0.86rem; margin-bottom: 6px;">Your application was submitted and is waiting on admin approval. This usually takes about 24 hours.</p>
+      {% elif booking.status == 'approved' %}
+        <p style="color: var(--slate); font-size: 0.86rem; margin-bottom: 6px;">You're in! Visit the hostel office with your ID to collect your key.</p>
+      {% elif booking.status == 'rejected' %}
+        <p style="color: var(--slate); font-size: 0.86rem; margin-bottom: 6px;">This application wasn't approved. You can apply for a different room from the listing page.</p>
+      {% endif %}
+
+      {% if booking.status != 'rejected' %}
+      <div class="timeline">
+        <div class="tl-step done"><div class="tl-line"></div><div class="tl-dot"></div><div class="tl-label">Applied</div></div>
+        <div class="tl-step {% if booking.status == 'pending' %}current{% else %}done{% endif %}"><div class="tl-line"></div><div class="tl-dot"></div><div class="tl-label">Under Review</div></div>
+        <div class="tl-step {% if booking.status == 'approved' %}done{% endif %}"><div class="tl-line"></div><div class="tl-dot"></div><div class="tl-label">Approved</div></div>
+      </div>
+      {% endif %}
+
+      <div class="status-actions" style="margin-top: 22px;">
+        <a href="{% url 'detail' booking.room.room_number %}" class="btn-outline">View Room</a>
+        {% if booking.status == 'pending' %}
+          <button class="btn-outline" onclick="alert('Cancel application — connect this to your Django booking view.')">Cancel Application</button>
+        {% elif booking.status == 'rejected' %}
+          <a href="{% url 'listing' %}" class="btn-outline">Browse Other Rooms</a>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card status-card">
+      <div class="empty-state">
+        <h2 style="margin-bottom: 8px;">No active application</h2>
+        <p>You haven't applied for a room yet. Browse available rooms to get started.</p>
+        <a href="{% url 'listing' %}" class="btn-gold">Browse Rooms</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>Notices</h2>
+      <p class="sub">Updates about your account and hostel</p>
+
+      <div class="notice">
+        <div class="notice-dot"></div>
+        <div>
+          <div class="notice-text">Hostel resumption for the new session begins in 3 weeks — apply early to secure a room.</div>
+          <div class="notice-time">1 day ago</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: profile + quick links -->
+  <div class="side-col">
+
+    <div class="card">
+      <div class="profile-row">
+        <div class="profile-avatar">{{ initials }}</div>
+        <div>
+          <div class="profile-name">{{ full_name|default:request.user.username }}</div>
+          <div class="profile-matric">{{ student.matric_number }}</div>
+        </div>
+      </div>
+
+      <div class="info-list">
+        <div class="info-row"><span>Department</span><span>{{ student.department }}</span></div>
+        <div class="info-row"><span>Level</span><span>{{ student.level }}</span></div>
+        <div class="info-row"><span>Email</span><span>{{ request.user.email }}</span></div>
+        <div class="info-row"><span>Phone</span><span>{{ student.phone|default:"—" }}</span></div>
+      </div>
+
+      <a href="#" class="edit-btn">Edit Profile</a>
+    </div>
+
+    <div class="card">
+      <h2>Quick Links</h2>
+      <p class="sub">Things you'll probably need</p>
+      <div class="quick-links">
+        <a href="{% url 'listing' %}" class="quick-link"><span>Browse available rooms</span><span class="arrow">→</span></a>
+        <a href="#" class="quick-link"><span>Report a complaint</span><span class="arrow">→</span></a>
+        <a href="#" class="quick-link"><span>Payment history</span><span class="arrow">→</span></a>
+        <a href="{% url 'logout' %}" class="quick-link"><span>Log out</span><span class="arrow">→</span></a>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
