@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-)5&0qem19#nuk*-abfx9&k%r^94mvfm3r-qb--n+pw_)o5kff)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -124,3 +124,9 @@ STATIC_URL = 'static/'
 LOGIN_URL = 'login_register'
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Security (only kicks in when DEBUG=False)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True

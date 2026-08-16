@@ -10,6 +10,7 @@ from .models import Hostel, Room, StudentProfile, Booking, StaffAccessRequest
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.contrib.auth.password_validation import validate_password
+from django.views.decorators.cache import never_cache
 
 
 def landing(request):
@@ -17,13 +18,13 @@ def landing(request):
     Confirm this works before writing anything else."""
     return render(request, "hostel/landing.html")
 
-
+@never_cache
 def login_register(request):
     """Renders the login/register page. Actual auth happens in login_view
     and register_view below, which this page's two forms POST to."""
     return render(request, "hostel/login.html")
 
-
+@never_cache
 def login_view(request):
     if request.method != "POST":
         return redirect("login_register")
@@ -104,7 +105,7 @@ def logout_view(request):
     auth_logout(request)
     return redirect("landing")
 
-
+@never_cache
 def admin_login_page(request):
     """Renders the separate admin login page. Actual auth happens in
     admin_login_submit below, which its form POSTs to."""
@@ -115,7 +116,7 @@ def admin_login_page(request):
     context = {"total_capacity": total_capacity, "total_vacant": total_vacant}
     return render(request, "hostel/admin_login.html", context)
 
-
+@never_cache
 def admin_login_submit(request):
     if request.method != "POST":
         return redirect("admin_login")
@@ -223,7 +224,7 @@ def detail(request, room_number):
         "approved_booking": approved_booking,
     })
 
-
+@never_cache
 @login_required
 def dashboard(request):
     student = get_object_or_404(StudentProfile, user=request.user)
@@ -282,7 +283,7 @@ def booking(request, room_number):
 
     return render(request, "hostel/booking.html", {"room": room, "student": student})
 
-
+@never_cache
 @staff_member_required(login_url='admin_login')
 def admin_dashboard(request):
     rooms = Room.objects.select_related("hostel").all()
