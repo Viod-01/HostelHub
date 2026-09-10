@@ -418,7 +418,9 @@
       <form method="post" action="{% url 'admin_login_submit' %}" onsubmit="return handleSubmit(event, 'signin')" novalidate>
         {% csrf_token %}
         {% if login_error %}
-          <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">Incorrect staff ID/email or password.</p>
+          {# the view's specific message was never rendered here, so every
+             rejection on this page showed identical generic text #}
+          <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">{% if messages %}{% for message in messages %}{{ message }}{% endfor %}{% else %}Incorrect staff ID/email or password.{% endif %}</p>
         {% endif %}
         <div class="field" id="admin-id-field">
           <label for="admin-id">Staff ID or Email</label>
@@ -459,7 +461,7 @@
       <form method="post" action="{% url 'request_access' %}" onsubmit="return handleSubmit(event, 'request')" novalidate>
         {% csrf_token %}
         {% if request_access_error %}
-          <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">Please fix the errors below and try again.</p>
+          <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">{% if messages %}{% for message in messages %}{{ message }}{% endfor %}{% else %}Please fix the errors below and try again.{% endif %}</p>
         {% endif %}
         <div class="field" id="reg-name-field">
           <label for="reg-name">Full Name</label>

@@ -33,7 +33,7 @@ BLOCK_DATA = [
 
 
 class Command(BaseCommand):
-    help = "Seeds all 20 hostel blocks (15 standard + 5 special) with 51 rooms each — 1,020 total, all vacant."
+    help = "Creates the 20 hostel blocks and 51 rooms each (1,020 total). Insert-only: existing blocks and rooms are left untouched, so re-running on a deployed database is safe."
 
     def handle(self, *args, **options):
         for name, code, room_type, capacity, price in BLOCK_DATA:
@@ -45,11 +45,13 @@ class Command(BaseCommand):
                     "price_per_session": price,
                 },
             )
+            # Insert-only: build.sh runs this command on every deploy, and
+            # overwriting an existing block would silently undo any price or
+            # capacity a warden changed in the admin between deploys.
             if not created:
-                hostel.room_type = room_type
-                hostel.capacity_per_room = capacity
-                hostel.price_per_session = price
-                hostel.save()
+                self.stdout.write(self.style.WARNING(
+                    f"{name}: already seeded — left as-is (use the admin to change prices)"
+                ))
 
             new_count = 0
             for i in range(1, ROOMS_PER_BLOCK + 1):
@@ -62,10 +64,8 @@ class Command(BaseCommand):
                 )
                 if was_created:
                     new_count += 1
-                else:
-                    room.hostel = hostel
-                    room.floor = floor
-                    room.save(update_fields=["hostel", "floor"])
+                # existing rooms are left alone: reassigning hostel/floor on a
+                # room that already has bookings would misattribute occupancy
 
             self.stdout.write(self.style.SUCCESS(
                 f"{name}: {new_count} new rooms created (target {ROOMS_PER_BLOCK}, all vacant)"

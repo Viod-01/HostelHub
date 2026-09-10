@@ -44,7 +44,7 @@ python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\act
 pip install -r requirements.txt
 
 python manage.py migrate
-python manage.py seed_rooms                          # creates all 20 blocks
+python manage.py seed_rooms                          # creates all 20 blocks; safe to re-run
 python manage.py createsuperuser                     # your first warden account
 
 python manage.py runserver
@@ -202,10 +202,11 @@ python manage.py seed_rooms
 
 Configure on the host: `SECRET_KEY`, `DEBUG=False`, `DATABASE_URL`, `ALLOWED_HOSTS`.
 
-**Two things to fix before this goes public** — both are in [Known limitations](#known-limitations), and neither affects the app in development:
+Static files are served by WhiteNoise and `python manage.py check --deploy` is clean apart from the `SECRET_KEY`-length warning (it fires on any throwaway dev key, including the ones used above).
 
-1. `SECRET_KEY` has a literal fallback committed in `settings.py`.
-2. `whitenoise` is installed but not in `MIDDLEWARE`, so `/static/` returns 404 in production. Harmless today (the portal's own pages inline their CSS) but it breaks Django's `/admin/` styling. And the `STATICFILES_STORAGE = ...` line below it is a no-op: that setting was removed in Django 5.1, so it has to move into the `STORAGES` dict to do anything.
+> **Rotate the old key.** `SECRET_KEY` was committed as a literal until recently, so the
+> previous value must be treated as public: it can forge signed cookies and session data.
+> It now reads from the environment with a dev-only fallback, so set a fresh one on the host.
 
 ---
 
@@ -213,27 +214,38 @@ Configure on the host: `SECRET_KEY`, `DEBUG=False`, `DATABASE_URL`, `ALLOWED_HOS
 
 Stated plainly, because a portfolio project is more credible for them than without them:
 
+- **Booking acceptance is not atomic.** `booking_decision` does a read-modify-write on `occupied_beds` without `transaction.atomic()` + `select_for_update()`, so two wardens approving simultaneously could overbook the last bed. The `is_full` guard makes this a rare race, not a common one.
+- **No password reset or profile editing.** A forgotten password has no self-service path; the only recovery is editing `auth_user` in Django admin.
 - **The listing page sends every room and hides most of it.** ~1,020 cards are rendered server-side (about 1 MB of HTML) and trimmed to a 5-per-block preview in client JS, because `listing()` has no limit or pagination. Correct on screen, wasteful on the wire.
-- **The staff sidebar is client-side routing.** `admin.html` switches its five sections with `showView(...)` inside one template rather than separate URLs, so no section is deep-linkable or bookmarkable.
-- **`SECRET_KEY` is hardcoded** in `settings.py` as a literal, not read from the environment. Rotate it and move it to `config('SECRET_KEY')`.
-- **No static-file middleware.** `whitenoise.middleware.WhiteNoiseMiddleware` is missing from `MIDDLEWARE`, and `STATICFILES_STORAGE` was removed in Django 6.0 — it needs to move to the `STORAGES` dict to have any effect.
-- **Booking acceptance is not atomic.** `booking_decision` does a read-modify-write on `occupied_beds` without `transaction.atomic()` + `select_for_update()`, so two wardens approving simultaneously could overbook the last bed.
-- **The landing page numbers are static.** `landing()` renders a template with no query, so "1020+ rooms / 20 blocks / 48 vacant" are design values, not live data. The *admin* dashboard computes the same figures from the database.
-- **A room holds beds, not people.** `occupied_beds` is an integer; there is no link between an approved booking and a specific bed, and no move-out / cancellation path that releases it.
-- **Single-warden approval, no audit trail.** Decisions record `decided_at` but not *who* decided.
-- **No tests, and no CI.** `portal/tests.py` is the empty scaffold — the flows described above were verified by hand.
-- **Rejection is terminal.** A rejected student must register a new account to reapply, since the block on an "active application" doesn't count rejections — but the rejected one is still visible on the dashboard.
+- **Photos are `picsum.photos` placeholders**, resolved at runtime by a third party, and the favicon is a `.jpg` declared as `image/png`. Swap in real block photography before showing this to anyone who might take the images literally.
+- **A room holds beds, not people.** `occupied_beds` is an integer; nothing links an approved booking to a specific bed, and there is no move-out or cancellation path that releases one.
+- **Decisions have no author.** `Booking` records `decided_at` but not which warden approved, so there is no audit trail.
+- **No tests, and no CI.** `portal/tests.py` is still the empty scaffold. The behaviours on this page were confirmed by hand against a running instance, which is not a substitute.
+- **Rejection is terminal.** A rejected student must register a fresh account to reapply, and the rejected application stays on their dashboard.
+
+### Fixed in the current history
+
+Worth listing because each was a live bug, not a code-smell, and the fixes are in `git log`:
+
+- `Room.room_number` was `unique=True` in the model but **the constraint never reached the schema** — the initial migration omitted it. Two rooms sharing a number made `detail()`/`booking()` raise `MultipleObjectsReturned` (HTTP 500), since both look rooms up by number with `.get()`.
+- `register_view` wrote `User` and `StudentProfile` in two unguarded steps, so a failure between them left an **active account that could log in, 404 on every page, and could never re-register** (its matric number was taken). Now wrapped in `transaction.atomic()` with `level` and `matric` validated first.
+- `whitenoise` was installed but absent from `MIDDLEWARE`, so `/static/` was 404 in production; and `STATICFILES_STORAGE` was a **no-op since Django 5.1 removed it**, leaving `STORAGES` on the plain default.
+- `seed_rooms` force-saved `price_per_session`/`capacity_per_room` on every block, and `build.sh` runs it on **every deploy** — so a warden's admin edits were silently reverted on the next push. It is now insert-only.
+- `request_access` never checked email uniqueness, while `admin_login_submit` resolves identifiers via `filter(email=...).first()` — two staff requests sharing an email could authenticate against the first account.
+- `admin_login.html` rendered its own generic text instead of the view's messages, so every rejection on the staff page said the same thing.
+- `landing()` ran no query, so the hero counts and per-block "vacant" chips were **hardcoded HTML** that would not change as rooms filled. They are computed now; the "24h" figure is labelled as a target, because nothing measures actual decision latency yet.
+- Two nav bugs: `listing.html` had two independent `{% if user.is_authenticated %}` blocks that drew "Log In" twice for guests, and `landing.html` showed it to signed-in students. The dead `Complaints` link (no model, view or URL behind it) is gone.
 
 ---
 
 ## Roadmap
 
-- [ ] `transaction.atomic()` + row locks around approval, plus a DB-level unique constraint for one-active-booking-per-student
-- [ ] Wire `landing()` to the same vacancy query the admin dashboard uses
+- [ ] `transaction.atomic()` + `select_for_update()` around approval, and a partial unique index enforcing one-active-booking-per-student at the DB level
+- [ ] Pagination or a server-side limit on the room listing
 - [ ] Move payments out of "price per session" text into an actual invoicing record
 - [ ] Email notifications on approve/reject (`EMAIL_BACKEND` is currently the console backend)
 - [ ] Per-bed allocation so a shared room shows *which* bed is yours
-- [ ] Tests for the booking and staff-access lifecycles, with GitHub Actions
+- [ ] Tests for the booking, registration and staff-access lifecycles, with GitHub Actions
 - [ ] Split the admin dashboard's client-side views into real routes
 
 ---

@@ -404,21 +404,21 @@
       <a href="#how" class="btn-ghost">See How It Works</a>
     </div>
     <div class="stat-row">
-      <div><span class="num">1020+</span><span class="label">Rooms Listed</span></div>
-      <div><span class="num">20</span><span class="label">Hostel Blocks</span></div>
-      <div><span class="num">24h</span><span class="label">Avg. Approval</span></div>
+      <div><span class="num">{{ room_count }}</span><span class="label">Rooms Listed</span></div>
+      <div><span class="num">{{ hostel_count }}</span><span class="label">Hostel Blocks</span></div>
+      {# 24h is a service target, not a measured figure: Booking now stores no
+        approver or decision latency, so there is nothing to average yet.
+        Replace with a real computed value once decisions are timed. #}
+      <div><span class="num">24h</span><span class="label">Target Approval Time</span></div>
     </div>
   </div>
 
   <div class="key-ring">
     <div class="ring-core"><div class="keyhole-shape"></div></div>
     <div class="orbit">
-      <div class="tag tag-a"><div class="block">Block A</div><div class="stat">46 vacant</div></div>
-      <div class="tag tag-b"><div class="block">Block B</div><div class="stat">44 vacant</div></div>
-      <div class="tag tag-c"><div class="block">Block C</div><div class="stat">47 vacant</div></div>
-      <div class="tag tag-d"><div class="block">Block D</div><div class="stat">48 vacant</div></div>
-      <div class="tag tag-e"><div class="block">Block E</div><div class="stat">45 vacant</div></div>
-      <div class="tag tag-f"><div class="block">Block F</div><div class="stat">46 vacant</div></div>
+      {% for block in landing_blocks|slice:":6" %}
+      <div class="tag tag-{% cycle 'a' 'b' 'c' 'd' 'e' 'f' %}"><div class="block">{{ block.name }}</div><div class="stat">{{ block.vacant }} vacant</div></div>
+      {% endfor %}
     </div>
   </div>
 </section>

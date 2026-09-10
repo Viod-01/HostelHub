@@ -155,3 +155,35 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # check --deploy flagged the missing HSTS policy; a 6-month max on a host
+    # that only ever serves HTTPS is the usual safe choice
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 180
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# Explicit, since both are currently left to Django defaults. Set here so they
+# do not silently change on a future upgrade, and so the intent is visible.
+SESSION_COOKIE_HTTPONLY = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# Application errors were invisible after deploy: gunicorn only logged them to
+# stderr, which is unhelpful for exactly the kind of 500 this project had
+# (a 500 from a duplicate room number, or a failed registration write).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {'format': '{levelname} {asctime} {name} {message}', 'style': '{'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'simple'},
+    },
+    'root': {'handlers': ['console'], 'level': 'INFO'},
+    'loggers': {
+        'django': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'django.request': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False},
+        'portal': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+    },
+}

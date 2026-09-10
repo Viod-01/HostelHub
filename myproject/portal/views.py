@@ -1,4 +1,7 @@
-from django.db.models import F
+from django.db.models import Count, F, IntegerField, Sum
+from django.db.models.functions import Cast, Coalesce
+from django.db.models import Value
+import re
 from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -18,9 +21,38 @@ from django.views.decorators.cache import never_cache
 
 
 def landing(request):
-    """Simplest possible view — just renders the template, no database query yet.
-    Confirm this works before writing anything else."""
-    return render(request, "hostel/landing.html")
+    """Live hero stats + block orbit, so the landing page never advertises
+    inventory that does not exist. Two aggregate queries, not one per room."""
+    # capacity lives on Hostel, so sum each room's hostel capacity to get total
+    # beds — one aggregate instead of loading all 1,020 rooms into Python
+    room_stats = Room.objects.aggregate(
+        rooms=Count("id"),
+        beds=Coalesce(Sum(Cast("hostel__capacity_per_room", IntegerField())), Value(0)),
+        occupied=Coalesce(Sum("occupied_beds"), Value(0)),
+    )
+    hostel_count = Hostel.objects.count()
+
+    # Aggregate over Room grouped by hostel rather than annotating Hostel with
+    # two joins at once — Count(*) * F(capacity) inflates when a second join
+    # (the SUM of occupied beds) duplicates the rows being counted.
+    per_block = {
+        row["hostel__name"]: row
+        for row in Room.objects.values("hostel__name").annotate(
+            beds=Coalesce(Sum(Cast("hostel__capacity_per_room", IntegerField())), Value(0)),
+            taken=Coalesce(Sum("occupied_beds"), Value(0)),
+        )
+    }
+    landing_blocks = [
+        {"name": name, "vacant": (row["beds"] or 0) - (row["taken"] or 0)}
+        for name, row in sorted(per_block.items())
+    ]
+
+    return render(request, "hostel/landing.html", {
+        "room_count": room_stats["rooms"] or 0,
+        "bed_count": (room_stats["beds"] or 0) - (room_stats["occupied"] or 0),
+        "hostel_count": hostel_count,
+        "landing_blocks": landing_blocks,
+    })
 
 @never_cache
 def login_register(request):
@@ -187,6 +219,16 @@ def request_access(request):
             "request_access_error": True, "active_tab": "request",
         })
 
+    # admin_login_submit resolves an identifier to a username via
+    # User.objects.filter(email=...).first(), so two staff accounts sharing one
+    # email would let the second person authenticate as the first. The student
+    # path already guards this; the staff path did not.
+    if User.objects.filter(email__iexact=email).exists():
+        messages.error(request, "An account with that email already exists.")
+        return render(request, "hostel/admin_login.html", {
+            "request_access_error": True, "active_tab": "request",
+        })
+
     # Created inactive and not staff — authenticate() already refuses login
     # for inactive users, so there's no separate check needed to keep this
     # account locked out until an existing admin approves the request.
@@ -289,6 +331,11 @@ def booking(request, room_number):
             return redirect("dashboard")
 
         session = request.POST.get("session", "").strip()
+        # the form offers radio buttons, but a crafted POST can send anything;
+        # an over-length value stores on SQLite and raises DataError on Postgres
+        if not re.fullmatch(r"\d{4}/\d{4}", session):
+            messages.error(request, "Select a valid session.")
+            return render(request, "hostel/booking.html", {"room": room, "student": student})
         special_requests = request.POST.get("special_requests", "").strip()
         phone = request.POST.get("phone", "").strip()
 
@@ -310,7 +357,15 @@ def booking(request, room_number):
 @staff_member_required(login_url='admin_login')
 def admin_dashboard(request):
     rooms = Room.objects.select_related("hostel").all()
-    hostels = Hostel.objects.all()
+    hostels = Hostel.objects.all().order_by("name")
+    hostel_stats = {
+        row["hostel__name"]: row
+        for row in Room.objects.values("hostel__name").annotate(
+            beds=Coalesce(Sum(Cast("hostel__capacity_per_room", IntegerField())), Value(0)),
+            taken=Coalesce(Sum("occupied_beds"), Value(0)),
+            room_total=Count("id"),
+        )
+    }
     students = StudentProfile.objects.select_related("user").all()
     bookings = (
         Booking.objects
@@ -318,22 +373,30 @@ def admin_dashboard(request):
         .order_by("-applied_at")
     )
 
-    # bed-level totals — computed from whatever rooms actually exist,
-    # not a fixed guess, so this stays correct as you add/remove rooms
-    total_capacity = sum(r.capacity for r in rooms)
-    total_occupied = sum(r.occupied_beds for r in rooms)
+    # bed-level totals — one aggregate query, replacing a full-table load of
+    # every Room row into Python
+    agg = Room.objects.aggregate(
+        occupied=Coalesce(Sum("occupied_beds"), Value(0)),
+    )
+    total_occupied = agg["occupied"] or 0
+    total_capacity = sum(v["beds"] or 0 for v in hostel_stats.values())
     total_vacant = total_capacity - total_occupied
     vacant_pct = round((total_vacant / total_capacity) * 100) if total_capacity else 0
     occupied_pct = 100 - vacant_pct if total_capacity else 0
 
     for hostel in hostels:
-        hostel_rooms = [r for r in rooms if r.hostel_id == hostel.id]
-        hostel.room_count = len(hostel_rooms)
-        hostel.vacant_count = sum(r.vacant_beds for r in hostel_rooms)
+        stats = hostel_stats.get(hostel.name, {})
+        hostel.room_count = stats.get("room_total", 0)
+        hostel.vacant_count = (stats.get("beds") or 0) - (stats.get("taken") or 0)
 
+    # was one Booking query per student (N+1 over every registered account);
+    # prefetch keeps the newest per student in a single extra query
+    students = StudentProfile.objects.select_related("user").prefetch_related(
+        "user__bookings"
+    ).all()
     for student in students:
-        student.latest_booking = (
-            Booking.objects.filter(student=student.user).order_by("-applied_at").first()
+        student.latest_booking = max(
+            student.user.bookings.all(), key=lambda b: b.applied_at, default=None
         )
 
     staff_requests = (
