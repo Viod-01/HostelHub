@@ -1,4 +1,5 @@
 from django.db.models import F
+from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
@@ -7,6 +8,9 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.utils import timezone
 from .models import Hostel, Room, StudentProfile, Booking, StaffAccessRequest
+
+# mirrors the <select> options on the register form
+LEVEL_CHOICES = {100, 200, 300, 400, 500}
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.contrib.auth.password_validation import validate_password
@@ -84,18 +88,37 @@ def register_view(request):
         messages.error(request, "An account with that email already exists.")
         return render(request, "hostel/login.html", {"register_error": True})
     
-    user = User.objects.create_user(username=matric, email=email, password=password)
-    name_parts = full_name.split(" ", 1)
-    user.first_name = name_parts[0]
-    user.last_name = name_parts[1] if len(name_parts) > 1 else ""
-    user.save()
+    # level comes from a <select>, but a hand-built POST can send anything; a
+    # non-numeric value would raise inside the save below and leave an orphan User.
+    try:
+        level = int(level)
+    except (TypeError, ValueError):
+        messages.error(request, "Select a valid level.")
+        return render(request, "hostel/login.html", {"register_error": True})
+    if level not in LEVEL_CHOICES:
+        messages.error(request, "Select a valid level.")
+        return render(request, "hostel/login.html", {"register_error": True})
 
-    StudentProfile.objects.create(
-        user=user,
-        matric_number=matric,
-        department="",
-        level=level,
-    )
+    if len(matric) > StudentProfile._meta.get_field("matric_number").max_length:
+        messages.error(request, "That matric number is too long.")
+        return render(request, "hostel/login.html", {"register_error": True})
+
+    # Atomic: the User and its StudentProfile must live or die together, otherwise a
+    # failure below leaves an active account that can log in but 404s on every page,
+    # and whose matric number can never be registered again.
+    with transaction.atomic():
+        user = User.objects.create_user(username=matric, email=email, password=password)
+        name_parts = full_name.split(" ", 1)
+        user.first_name = name_parts[0]
+        user.last_name = name_parts[1] if len(name_parts) > 1 else ""
+        user.save()
+
+        StudentProfile.objects.create(
+            user=user,
+            matric_number=matric,
+            department="",
+            level=level,
+        )
 
     auth_login(request, user)
     return redirect("dashboard")
