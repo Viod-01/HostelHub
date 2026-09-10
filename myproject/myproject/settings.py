@@ -24,7 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)5&0qem19#nuk*-abfx9&k%r^94mvfm3r-qb--n+pw_)o5kff)'
+# Read from the environment (python-decouple), like DEBUG/ALLOWED_HOSTS below.
+# A dev-only fallback is kept so `manage.py runserver` still works on a fresh
+# clone — override SECRET_KEY in production, and never commit a real key.
+SECRET_KEY = config(
+    'SECRET_KEY',
+    default='django-insecure-DEV-ONLY-0123456789abcdef0123456789abcdef',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -49,6 +55,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -123,7 +130,17 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# STATICFILES_STORAGE was removed in Django 5.1 — static-file backend config now
+# lives in STORAGES, so the old setting name was silently ignored.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 
 # Email

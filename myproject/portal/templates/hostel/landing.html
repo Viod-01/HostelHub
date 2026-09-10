@@ -382,11 +382,15 @@
   <div class="nav-links">
     <a href="#how">How it works</a>
     <a href="#hostels">Hostels</a>
-    <a href="#">Complaints</a>
   </div>
   <div class="nav-cta-group">
-    <a href="{% url 'admin_login' %}" class="nav-cta-outline">Staff Login</a>
-    <a href="{% url 'login_register' %}" class="nav-cta">Log In</a>
+    {% if user.is_authenticated %}
+      <a href="{% url 'dashboard' %}" class="nav-cta-outline">Dashboard</a>
+      <a href="{% url 'logout' %}" class="nav-cta">Log Out</a>
+    {% else %}
+      <a href="{% url 'admin_login' %}" class="nav-cta-outline">Staff Login</a>
+      <a href="{% url 'login_register' %}" class="nav-cta">Log In</a>
+    {% endif %}
   </div>
 </nav>
 

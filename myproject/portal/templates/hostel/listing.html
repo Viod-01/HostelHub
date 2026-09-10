@@ -216,13 +216,10 @@
 <nav>
   <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
   <div class="nav-links">
-  {% if user.is_authenticated %}
-    <a href="{% url 'dashboard' %}">Home</a>
-  {% else %}
-    <a href="{% url 'login_register' %}" class="nav-cta">Log In</a>
-  {% endif %}
+    {% if user.is_authenticated %}
+      <a href="{% url 'dashboard' %}">Home</a>
+    {% endif %}
     <a href="{% url 'listing' %}">Hostels</a>
-    <a href="#">Complaints</a>
   </div>
   {% if user.is_authenticated %}
     <div style="display:flex; align-items:center; gap:14px;">
