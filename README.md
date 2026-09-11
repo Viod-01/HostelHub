@@ -79,22 +79,13 @@ DATABASE_URL=sqlite:///db.sqlite3
 
 ## Screens
 
-**Browse vacancies** — rooms are listed per bed, so a 4-share shows exactly how many beds are still free.
+**Rooms, per bed** — a 4-share shows exactly how many of its beds are still free, and the
+listing only contains rooms that have one.
 ![Room listing with per-bed vacancy indicators](docs/img/03-listing.jpg)
 
-**Room detail → apply** — bed-level breakdown, block pricing, then the application form.
-![Room detail page](docs/img/04-detail.jpg)
-![Room application form](docs/img/08-apply-form.jpg)
-
-**Student dashboard** — the latest application and its status, without having to ask anyone.
-![Student dashboard showing a pending application](docs/img/09-dashboard-pending.jpg)
-
-**Warden dashboard** — occupancy across every block, pending applications, and pending staff requests in one view.
+**Warden side** — occupancy across every block with pending applications and pending staff
+requests in the same view, which is the half that makes it a product rather than a browse page.
 ![Warden admin dashboard with occupancy stats](docs/img/10-admin-dashboard.jpg)
-
-**Dual login** — students authenticate with a matric number *or* email; staff have a separate entry point.
-![Student login and registration](docs/img/05-login.jpg)
-![Staff login and access request](docs/img/06-admin-login.jpg)
 
 ---
 
@@ -260,4 +251,4 @@ Released under the MIT License.
 
 ---
 
-*Screenshots in `docs/img/` were captured from the app running locally (Django 6.1 + SQLite, `seed_rooms` data). Replace them with your own once the data looks the way you want — `python manage.py seed_rooms` gives a clean, empty-inventory start.*
+*Three shots, one per surface that matters: the landing hero above, the student-side listing, and the warden dashboard. They were captured from the app running locally (Django 6.1 + SQLite, `seed_rooms` data) — `python manage.py seed_rooms` gives a clean, empty-inventory start if you want to re-shoot them.*
