@@ -217,7 +217,6 @@
   <div class="nav-links">
     <a href="{% url 'dashboard' %}" class="active">Dashboard</a>
     <a href="{% url 'listing' %}">Hostels</a>
-    <a href="#">Complaints</a>
   </div>
   <div class="nav-right">
     <span class="avatar">{{ initials }}</span>
@@ -316,7 +315,7 @@
         <div class="info-row"><span>Phone</span><span>{{ student.phone|default:"—" }}</span></div>
       </div>
 
-      <a href="#" class="edit-btn">Edit Profile</a>
+      {# Edit Profile needs a profile-edit view before it can link anywhere #}
     </div>
 
     <div class="card">

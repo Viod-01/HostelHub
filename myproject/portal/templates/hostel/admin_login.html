@@ -385,16 +385,16 @@
 
     <div class="status-row">
       <div>
-        <span class="num">1020+</span>
+        <span class="num">{{ room_count }}</span>
         <span class="label">Rooms Listed</span>
       </div>
       <div>
-        <span class="num">20</span>
+        <span class="num">{{ hostel_count }}</span>
         <span class="label">Hostel Blocks</span>
       </div>
       <div>
-        <span class="num">24h</span>
-        <span class="label">Avg. Approval</span>
+        <span class="num">{{ total_vacant }}</span>
+        <span class="label">Beds Free Now</span>
       </div>
     </div>
   </div>
@@ -418,8 +418,7 @@
       <form method="post" action="{% url 'admin_login_submit' %}" onsubmit="return handleSubmit(event, 'signin')" novalidate>
         {% csrf_token %}
         {% if login_error %}
-          {# the view's specific message was never rendered here, so every
-             rejection on this page showed identical generic text #}
+          {# renders the view's message; generic text only as fallback #}
           <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">{% if messages %}{% for message in messages %}{{ message }}{% endfor %}{% else %}Incorrect staff ID/email or password.{% endif %}</p>
         {% endif %}
         <div class="field" id="admin-id-field">
@@ -434,9 +433,9 @@
           <small class="err">Password must be at least 6 characters.</small>
         </div>
 
-        <div class="remember-row">
+        {# no password-reset or session-extension support exists yet; controls hidden, not left dead #}
+        <div class="remember-row" style="display:none;">
           <label><input type="checkbox" id="admin-remember"> Keep me signed in</label>
-          <a href="#">Forgot password?</a>
         </div>
 
         <button type="submit" class="submit-btn">Sign In</button>

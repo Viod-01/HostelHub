@@ -206,7 +206,7 @@ Static files are served by WhiteNoise and `python manage.py check --deploy` is c
 Stated plainly, because a portfolio project is more credible for them than without them:
 
 - **Booking acceptance is not atomic.** `booking_decision` does a read-modify-write on `occupied_beds` without `transaction.atomic()` + `select_for_update()`, so two wardens approving simultaneously could overbook the last bed. The `is_full` guard makes this a rare race, not a common one.
-- **No password reset or profile editing.** A forgotten password has no self-service path; the only recovery is editing `auth_user` in Django admin.
+- **No password reset or profile editing.** A forgotten password has no self-service path; the only recovery is editing `auth_user` in Django admin. The login page no longer offers a `Forgot password?` link for it — build the flow before restoring the control.
 - **The listing page sends every room and hides most of it.** ~1,020 cards are rendered server-side (about 1 MB of HTML) and trimmed to a 5-per-block preview in client JS, because `listing()` has no limit or pagination. Correct on screen, wasteful on the wire.
 - **Photos are `picsum.photos` placeholders**, resolved at runtime by a third party, and the favicon is a `.jpg` declared as `image/png`. Swap in real block photography before showing this to anyone who might take the images literally.
 - **A room holds beds, not people.** `occupied_beds` is an integer; nothing links an approved booking to a specific bed, and there is no move-out or cancellation path that releases one.
@@ -225,6 +225,10 @@ Worth listing because each was a live bug, not a code-smell, and the fixes are i
 - `request_access` never checked email uniqueness, while `admin_login_submit` resolves identifiers via `filter(email=...).first()` — two staff requests sharing an email could authenticate against the first account.
 - `admin_login.html` rendered its own generic text instead of the view's messages, so every rejection on the staff page said the same thing.
 - `landing()` ran no query, so the hero counts and per-block "vacant" chips were **hardcoded HTML** that would not change as rooms filled. They are computed now; the "24h" figure is labelled as a target, because nothing measures actual decision latency yet.
+- The staff login page had the same hardcoded stats plus a `Forgot password?` link to `#` and a "Keep me signed in" checkbox with no backend — both removed rather than left as dead furniture, since no password-reset flow exists yet.
+- `admin_login_page()` loaded all 1,020 `Room` rows into Python to compute two numbers for an unauthenticated page; now one aggregate (2 queries).
+- A Django gotcha worth remembering: **`{# comment #}` only works on one line.** A multi-line `{#` … `#}` is *not* stripped and renders as visible text on the page. Two comments I added did exactly that.
+- `Complaints` was dead in **three** more templates (`booking`, `details`, `dashboard`) after being removed from two — plus a no-op "Edit Profile" button. All gone; no `href="#"` link that looks actionable remains in the portal.
 - Two nav bugs: `listing.html` had two independent `{% if user.is_authenticated %}` blocks that drew "Log In" twice for guests, and `landing.html` showed it to signed-in students. The dead `Complaints` link (no model, view or URL behind it) is gone.
 
 ---

@@ -208,7 +208,8 @@
   }
   @keyframes counter-spin { to { transform: rotate(-360deg); } }
 
-  .tag .block { font-family: 'Fraunces', serif; font-size: 0.95rem; color: var(--gold-soft); }
+  .tag .block { font-family: 'Fraunces', serif; font-size: 0.95rem; color: var(--gold-soft);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tag .stat { font-size: 0.66rem; color: var(--slate-dim); }
 
   .tag-a { top: 0; left: 50%; transform: translateX(-50%); }
@@ -406,9 +407,7 @@
     <div class="stat-row">
       <div><span class="num">{{ room_count }}</span><span class="label">Rooms Listed</span></div>
       <div><span class="num">{{ hostel_count }}</span><span class="label">Hostel Blocks</span></div>
-      {# 24h is a service target, not a measured figure: Booking now stores no
-        approver or decision latency, so there is nothing to average yet.
-        Replace with a real computed value once decisions are timed. #}
+      {# 24h is a stated target, not a measurement: nothing records decision latency yet. #}
       <div><span class="num">24h</span><span class="label">Target Approval Time</span></div>
     </div>
   </div>

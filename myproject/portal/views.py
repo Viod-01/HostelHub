@@ -42,10 +42,14 @@ def landing(request):
             taken=Coalesce(Sum("occupied_beds"), Value(0)),
         )
     }
+    # The orbit is a fixed ring of six 92px chips sized for a name like "Block A",
+    # so it shows the six shortest-named blocks ("2-Bedroom Apartment 1" overflows
+    # the chip even when abbreviated). Long names stay visible on the listing page.
     landing_blocks = [
         {"name": name, "vacant": (row["beds"] or 0) - (row["taken"] or 0)}
-        for name, row in sorted(per_block.items())
+        for name, row in sorted(per_block.items(), key=lambda kv: (len(kv[0]), kv[0]))[:6]
     ]
+    landing_blocks.sort(key=lambda b: b["name"])
 
     return render(request, "hostel/landing.html", {
         "room_count": room_stats["rooms"] or 0,
@@ -164,11 +168,21 @@ def logout_view(request):
 def admin_login_page(request):
     """Renders the separate admin login page. Actual auth happens in
     admin_login_submit below, which its form POSTs to."""
-    rooms = Room.objects.select_related("hostel").all()
-    total_capacity = sum(r.capacity for r in rooms)
-    total_occupied = sum(r.occupied_beds for r in rooms)
-    total_vacant = total_capacity - total_occupied
-    context = {"total_capacity": total_capacity, "total_vacant": total_vacant}
+    # aggregate rather than loading every Room row into Python just to add up
+    # two numbers on an unauthenticated page
+    agg = Room.objects.aggregate(
+        room_total=Count("id"),
+        capacity=Coalesce(Sum(Cast("hostel__capacity_per_room", IntegerField())), Value(0)),
+        occupied=Coalesce(Sum("occupied_beds"), Value(0)),
+    )
+    total_capacity = agg["capacity"] or 0
+    total_occupied = agg["occupied"] or 0
+    context = {
+        "total_capacity": total_capacity,
+        "total_vacant": total_capacity - total_occupied,
+        "room_count": agg["room_total"] or 0,
+        "hostel_count": Hostel.objects.count(),
+    }
     return render(request, "hostel/admin_login.html", context)
 
 @never_cache
