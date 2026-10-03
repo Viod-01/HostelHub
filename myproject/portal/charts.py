@@ -20,9 +20,11 @@ from django.db.models import Count
 from django.db.models.functions import TruncMonth, TruncWeek
 from django.utils import timezone
 
-# SVG geometry — viewBox coordinates, not pixels; the SVG scales to fit
+# SVG geometry — viewBox coordinates, not pixels; the SVG scales to fit.
+# Padding is generous on purpose: the last data point's label is wide, and
+# a header/label jammed against the canvas edge looks broken.
 W, H = 600, 240
-PAD_L, PAD_R, PAD_T, PAD_B = 38, 12, 12, 30
+PAD_L, PAD_R, PAD_T, PAD_B = 46, 28, 20, 32
 
 
 def _buckets(mode, n, today):
@@ -108,12 +110,16 @@ def build_line_chart(title, series, mode="week", n=8):
             "last": vals[-1],
         })
 
-    # x labels: with 8 buckets, label every other one so they don't crowd
+    # x labels: with 8 buckets, label every other one so they don't crowd.
+    # The LAST label is end-anchored so it can't spill past the right edge.
     step = 2 if count > 6 else 1
-    xlabels = [
-        {"x": x(i), "t": labels[i] if i % step == 0 or i == count - 1 else ""}
-        for i in range(count)
-    ]
+    xlabels = []
+    for i in range(count):
+        if i % step == 0 or i == count - 1:
+            anchor = "end" if x(i) > W - 40 else "middle"
+            xlabels.append({"x": x(i), "t": labels[i], "anchor": anchor})
+        else:
+            xlabels.append({"x": x(i), "t": "", "anchor": "middle"})
 
     grid = [
         {"y": y(0), "label": "0"},
@@ -128,4 +134,5 @@ def build_line_chart(title, series, mode="week", n=8):
         "grid": grid,
         "w": W,
         "h": H,
+        "pad_l": PAD_L,
     }

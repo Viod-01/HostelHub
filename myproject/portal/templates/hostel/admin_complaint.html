@@ -128,7 +128,10 @@
   <div class="nav-links">
     <a href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
   </div>
-  <a href="{% url 'logout' %}" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Log Out</a>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <a href="{% url 'admin_dashboard' %}" style="background:rgba(147,160,188,0.12); color:var(--off-white); border:1px solid rgba(147,160,188,0.25); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Dashboard</a>
+    <a href="{% url 'logout' %}" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Log Out</a>
+  </div>
 </nav>
 
 <div class="wrap">

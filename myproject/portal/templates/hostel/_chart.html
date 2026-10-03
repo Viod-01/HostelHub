@@ -6,27 +6,35 @@ Usage:
   {% include "hostel/_chart.html" with chart=some_chart %}
 {% endcomment %}
 <style>
-  .chart-wrap h2 { font-size: 0.98rem; font-weight: 600; margin-bottom: 2px; }
-  .chart-wrap .chart-sub { font-size: 0.76rem; color: var(--slate-dim); margin-bottom: 12px; }
-  .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+  .chart-wrap { padding: 4px 2px 0; }
+  .chart-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 12px; flex-wrap: wrap;
+    padding: 0 0 12px; margin-bottom: 14px;
+    border-bottom: 1px solid rgba(147,160,188,0.16);
+  }
+  .chart-head h2 { font-size: 0.98rem; font-weight: 600; margin: 0; }
+  .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; }
   .chart-legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--slate); }
   .chart-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
   .chart-wrap svg { width: 100%; height: auto; display: block; }
 </style>
 <div class="chart-wrap">
-  <h2>{{ chart.title }}</h2>
-  <div class="chart-legend">
-    {% for s in chart.series %}
-    <span><i style="background: {{ s.color }};"></i>{{ s.name }}{% if s.last %} &middot; {{ s.last }} this period{% endif %}</span>
-    {% endfor %}
+  <div class="chart-head">
+    <h2>{{ chart.title }}</h2>
+    <div class="chart-legend">
+      {% for s in chart.series %}
+      <span><i style="background: {{ s.color }};"></i>{{ s.name }}{% if s.last %} &middot; {{ s.last }} this period{% endif %}</span>
+      {% endfor %}
+    </div>
   </div>
   <svg viewBox="0 0 {{ chart.w }} {{ chart.h }}" role="img" aria-label="{{ chart.title }}">
     {% for g in chart.grid %}
-    <line x1="38" y1="{{ g.y }}" x2="{{ chart.w|add:"-12" }}" y2="{{ g.y }}" stroke="rgba(147,160,188,0.15)" stroke-width="1"/>
-    <text x="30" y="{{ g.y|add:"4" }}" text-anchor="end" font-size="11" fill="#5D6A8C">{{ g.label }}</text>
+    <line x1="{{ chart.pad_l }}" y1="{{ g.y }}" x2="{{ chart.w|add:"-28" }}" y2="{{ g.y }}" stroke="rgba(147,160,188,0.15)" stroke-width="1"/>
+    <text x="{{ chart.pad_l|add:"-8" }}" y="{{ g.y|add:"4" }}" text-anchor="end" font-size="11" fill="#5D6A8C">{{ g.label }}</text>
     {% endfor %}
     {% for xl in chart.xlabels %}
-      {% if xl.t %}<text x="{{ xl.x }}" y="{{ chart.h|add:"-8" }}" text-anchor="middle" font-size="11" fill="#5D6A8C">{{ xl.t }}</text>{% endif %}
+      {% if xl.t %}<text x="{{ xl.x }}" y="{{ chart.h|add:"-10" }}" text-anchor="{{ xl.anchor }}" font-size="11" fill="#5D6A8C">{{ xl.t }}</text>{% endif %}
     {% endfor %}
     {% for s in chart.series %}
     <path d="{{ s.area }}" fill="{{ s.color }}" opacity="0.10"/>

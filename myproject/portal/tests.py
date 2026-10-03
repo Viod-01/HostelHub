@@ -405,6 +405,14 @@ class ChartTests(TestCase):
         self.assertContains(response, "Your complaints — last 6 months")
         self.assertContains(response, "<polyline")
 
+    def test_chart_header_is_not_jammed_against_the_edge(self):
+        # header sits in its own bordered block with padding, and the last
+        # x-label is end-anchored so it can't spill past the canvas edge
+        self.client.login(username="student1", password="pw-12345!")
+        response = self.client.get("/dashboard/complaints/")
+        self.assertContains(response, "chart-head")
+        self.assertContains(response, 'text-anchor="end"')
+
     def test_chart_counts_land_in_the_right_bucket(self):
         from .charts import build_line_chart
         from .models import Complaint as C
@@ -513,6 +521,38 @@ class AdminComplaintsPageTests(TestCase):
                 # manifest storage serves a hashed name (favicon.<hash>.png)
                 self.assertContains(response, 'rel="icon"')
                 self.assertContains(response, "favicon")
+
+
+# --------------------------------------------- dashboard button on navs
+
+class DashboardButtonTests(TestCase):
+    """The complaints pages' nav links disappear on phones (max-width
+    760px), which made the dashboard unreachable from there. A permanent
+    Dashboard button now sits beside Log Out on every complaints page."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user("admin", password="pw", is_staff=True)
+        self.student = make_student()
+        hostel = make_hostel()
+        self.room = make_room(hostel, "T-101")
+        self.complaint = Complaint.objects.create(
+            student=self.student, category="water", description="x"
+        )
+
+    def test_student_complaints_page_has_the_button(self):
+        self.client.login(username="student1", password="pw-12345!")
+        response = self.client.get("/dashboard/complaints/")
+        # nav links + breadcrumb + the always-visible button
+        self.assertContains(response, 'href="/dashboard/"', count=3)
+
+    def test_admin_complaints_pages_have_the_button(self):
+        self.client.login(username="admin", password="pw")
+        for url in ["/dashboard/admin/complaints/",
+                    f"/dashboard/admin/complaints/{self.complaint.pk}/"]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertContains(response, 'href="/dashboard/admin/"', count=3)
+                self.assertContains(response, ">Dashboard</a>")
 
 
 # -------------------------------------------------------- public pages
