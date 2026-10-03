@@ -703,6 +703,25 @@ def complaints_page(request):
 
 @never_cache
 @staff_member_required(login_url="admin_login")
+def complaint_list(request):
+    """The admin's complaints page — a real, standalone page (the complaints
+    table used to live in a hidden pane of the dashboard with no sidebar
+    entry pointing at it)."""
+    complaints = (
+        Complaint.objects
+        .select_related("student", "assigned_to", "assigned_to__hostel")
+        .order_by("status", "-created_at")
+    )
+    return render(request, "hostel/admin_complaints.html", {
+        "complaints": complaints,
+        "open_complaint_count": complaints.exclude(
+            status__in=["resolved", "closed"]
+        ).count(),
+    })
+
+
+@never_cache
+@staff_member_required(login_url="admin_login")
 def complaint_detail(request, complaint_id):
     """The admin's complaint management page. GET shows the complaint, its
     timeline, and the action form; POST advances the workflow:

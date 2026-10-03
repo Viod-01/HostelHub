@@ -1,6 +1,9 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HostelHub — Admin</title>
@@ -257,6 +260,11 @@
     <div class="side-link" data-view="staffrequests" onclick="showView('staffrequests', this)">
       <span>Staff Requests</span><span class="side-badge">{{ pending_staff_count }}</span>
     </div>
+    <!-- a real page of its own, like the student complaints page — not a
+         hidden pane inside this one -->
+    <a class="side-link" href="{% url 'complaint_list' %}" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Complaints</span><span class="side-badge">{{ open_complaint_count }}</span>
+    </a>
 
     <div class="sidebar-foot">
       <div class="avatar">{{ initials }}</div>
@@ -589,39 +597,7 @@
       </div>
     </div>
 
-    <!-- COMPLAINTS -->
-    <div class="view" id="view-complaints">
-      <div class="page-head">
-        <div>
-          <h1>Complaints</h1>
-          <p>Issues reported by students — work them through the pipeline.</p>
-        </div>
-      </div>
-
-      <div class="panel">
-        <table>
-          <thead><tr><th>Reported</th><th>Student</th><th>Category</th><th>Problem</th><th>Assigned</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            {% for c in complaints %}
-            <tr>
-              <td>{{ c.created_at|timesince }} ago</td>
-              <td class="who-cell">
-                <div class="mini-avatar">{{ c.student.username|slice:":2"|upper }}</div>
-                <div><div>{{ c.student.get_full_name|default:c.student.username }}</div><div class="matric">{{ c.student.studentprofile.matric_number }}</div></div>
-              </td>
-              <td>{{ c.get_category_display }}</td>
-              <td style="max-width:300px;">{{ c.description|truncatechars:80 }}</td>
-              <td>{% if c.assigned_to %}{{ c.assigned_to.name }}{% else %}—{% endif %}</td>
-              <td><span class="badge {{ c.status }}">{{ c.get_status_display }}</span></td>
-              <td><a href="{% url 'complaint_detail' c.id %}" style="font-size:0.8rem; color:var(--gold-soft);">Manage &rarr;</a></td>
-            </tr>
-            {% empty %}
-            <tr class="empty-row"><td colspan="7">No complaints yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    
 
   </main>
 </div>

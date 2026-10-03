@@ -469,6 +469,51 @@ class AvatarInitialsTests(TestCase):
         self.assertContains(response, ">NE<")
 
 
+# ------------------------------------- admin complaints page + sidebar
+
+class AdminComplaintsPageTests(TestCase):
+    """Complaints get a real standalone admin page with a sidebar entry —
+    they previously lived in a hidden dashboard pane that NOTHING linked
+    to, so admins couldn't reach them at all."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user("admin1", password="pw", is_staff=True)
+        self.student = make_student()
+
+    def test_sidebar_links_to_the_complaints_page(self):
+        self.client.login(username="admin1", password="pw")
+        response = self.client.get("/dashboard/admin/")
+        self.assertContains(response, 'href="/dashboard/admin/complaints/"')
+        self.assertContains(response, "Complaints")
+        # the old unreachable in-page pane is gone
+        self.assertNotContains(response, 'id="view-complaints"')
+
+    def test_complaints_page_is_staff_only(self):
+        self.client.login(username="student1", password="pw-12345!")
+        response = self.client.get("/dashboard/admin/complaints/")
+        self.assertEqual(response.status_code, 302)   # bounced to admin login
+
+    def test_complaints_page_lists_complaints_with_manage_links(self):
+        Complaint.objects.create(
+            student=self.student, category="water", description="No water on floor 2"
+        )
+        self.client.login(username="admin1", password="pw")
+        response = self.client.get("/dashboard/admin/complaints/")
+        self.assertContains(response, "No water on floor 2")
+        self.assertContains(response, "Manage")
+        self.assertContains(response, "1 unfinished")
+
+    def test_every_page_serves_the_local_favicon(self):
+        self.client.login(username="admin1", password="pw")
+        for url in ["/", "/hostels/", "/login/", "/admin-login/",
+                    "/dashboard/admin/", "/dashboard/admin/complaints/"]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                # manifest storage serves a hashed name (favicon.<hash>.png)
+                self.assertContains(response, 'rel="icon"')
+                self.assertContains(response, "favicon")
+
+
 # -------------------------------------------------------- public pages
 
 class PublicPageSmokeTests(TestCase):

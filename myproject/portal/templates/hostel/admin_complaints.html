@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HostelHub — Complaints</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+  <style>
+    :root {
+      --navy-deep: #14213D;
+      --navy-panel: #1E2F52;
+      --navy-panel-2: #253A63;
+      --gold: #E8A33D;
+      --gold-soft: #F3C374;
+      --off-white: #F4F1EA;
+      --slate: #93A0BC;
+      --slate-dim: #5D6A8C;
+      --green: #7FBF8F;
+      --amber: #E8C33D;
+      --red: #E8636B;
+      --blue: #6CA0D8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+      background: var(--navy-deep);
+      color: var(--off-white);
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px clamp(24px, 6vw, 72px);
+      border-bottom: 1px solid rgba(232,163,61,0.12);
+      background: rgba(20,33,61,0.9);
+    }
+    .brand-mark { display: flex; align-items: center; gap: 10px; }
+    .brand-mark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+    .brand-mark span { font-family: 'Fraunces', serif; font-size: 1.05rem; letter-spacing: 0.03em; }
+    .nav-links { display: flex; gap: 32px; font-size: 0.88rem; color: var(--slate); }
+    .nav-links a:hover { color: var(--gold-soft); }
+    @media (max-width: 760px) { .nav-links { display: none; } }
+
+    .wrap { max-width: 1250px; margin: 0 auto; padding: 36px clamp(18px, 4vw, 40px) 64px; }
+    .crumb { font-size: 0.78rem; color: var(--slate-dim); margin-bottom: 14px; }
+    .crumb a:hover { color: var(--gold-soft); }
+    .page-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
+    .page-head h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(1.5rem, 3vw, 2rem); }
+    .sub { color: var(--slate); font-size: 0.86rem; margin-top: 4px; }
+
+    .panel {
+      background: var(--navy-panel);
+      border: 1px solid rgba(147,160,188,0.14);
+      border-radius: 16px;
+      padding: 20px;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      text-align: left; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--slate-dim); padding: 10px 12px; border-bottom: 1px solid rgba(147,160,188,0.16);
+      white-space: nowrap;
+    }
+    td { padding: 12px; border-bottom: 1px solid rgba(147,160,188,0.08); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(232,163,61,0.03); }
+    .who-cell { display: flex; align-items: center; gap: 10px; }
+    .mini-avatar {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(232,163,61,0.16); color: var(--gold-soft);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.66rem;
+    }
+    .matric { font-size: 0.7rem; color: var(--slate-dim); }
+    .empty-row td { text-align: center; color: var(--slate-dim); padding: 28px 0; }
+
+    .badge { font-size: 0.7rem; padding: 5px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+    .badge.open { background: rgba(232,195,61,0.14); color: var(--amber); }
+    .badge.review { background: rgba(147,160,188,0.16); color: var(--slate); }
+    .badge.assigned { background: rgba(232,163,61,0.15); color: var(--gold); }
+    .badge.in_progress { background: rgba(108,160,216,0.15); color: var(--blue); }
+    .badge.resolved { background: rgba(127,191,143,0.14); color: var(--green); }
+    .badge.closed { background: rgba(93,106,140,0.2); color: var(--slate-dim); }
+
+    .count-chip {
+      font-size: 0.78rem; color: var(--gold-soft);
+      background: rgba(232,163,61,0.1); border: 1px solid rgba(232,163,61,0.25);
+      padding: 8px 14px; border-radius: 20px; white-space: nowrap;
+    }
+    .manage { font-size: 0.8rem; color: var(--gold-soft); white-space: nowrap; }
+    .manage:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
+  <div class="nav-links">
+    <a href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
+  </div>
+  <a href="{% url 'logout' %}" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Log Out</a>
+</nav>
+
+<div class="wrap">
+  <div class="crumb"><a href="{% url 'admin_dashboard' %}">Admin Dashboard</a> / Complaints</div>
+
+  <div class="page-head">
+    <div>
+      <h1>Complaints</h1>
+      <div class="sub">Work each complaint through the pipeline: review, assign, resolve, close.</div>
+    </div>
+    <span class="count-chip">{{ open_complaint_count }} unfinished</span>
+  </div>
+
+  <div class="panel">
+    <table>
+      <thead><tr><th>Reported</th><th>Student</th><th>Category</th><th>Problem</th><th>Assigned</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for c in complaints %}
+        <tr>
+          <td style="white-space:nowrap;">{{ c.created_at|timesince }} ago</td>
+          <td>
+            <div class="who-cell">
+              <div class="mini-avatar">{{ c.student.username|slice:":2"|upper }}</div>
+              <div>
+                <div>{{ c.student.get_full_name|default:c.student.username }}</div>
+                <div class="matric">{{ c.student.studentprofile.matric_number }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ c.get_category_display }}</td>
+          <td style="max-width:320px;">{{ c.description|truncatechars:80 }}</td>
+          <td style="white-space:nowrap;">{% if c.assigned_to %}{{ c.assigned_to.name }}{% else %}—{% endif %}</td>
+          <td><span class="badge {{ c.status }}">{{ c.get_status_display }}</span></td>
+          <td><a class="manage" href="{% url 'complaint_detail' c.id %}">Manage &rarr;</a></td>
+        </tr>
+        {% empty %}
+        <tr class="empty-row"><td colspan="7">No complaints yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>
