@@ -175,7 +175,7 @@ class StaffAccessRequest(models.Model):
 
 class BlockSupervisor(models.Model):
     """The member of staff responsible for one hostel block. Shown to
-    students on that block's room pages, and managed by wardens through
+    students on that block's room pages, and managed by admins through
     the Django admin (/admin/) rather than a custom form."""
     hostel = models.OneToOneField(
         Hostel, on_delete=models.CASCADE, related_name="supervisor"

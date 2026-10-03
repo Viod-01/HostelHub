@@ -40,7 +40,7 @@ GET /hostels/ZZ-DUP/ with two rows              → 500
 `detail()` and `booking()` both look rooms up **by `room_number`, not by pk**, and both use
 `.get()`. So one duplicate row takes down that room's page for everyone — a 500, not a 404.
 
-How duplicates appear: warden adds a room in Django admin (admin form validates uniqueness
+How duplicates appear: admin adds a room in Django admin (admin form validates uniqueness
 against the *model*, but bulk import, a hand-written script, or a second `createsuperuser`-era
 seed won't); or two concurrent `seed_rooms` runs, which do `get_or_create(room_number=...)`
 — a TOCTOU race that creates two rows without a DB constraint to catch it.
@@ -126,7 +126,7 @@ choices and integer coercion for free, and `StudentProfile.full_clean()` would c
 
 ---
 
-## P1 · `seed_rooms` overwrites warden edits on every redeploy
+## P1 · `seed_rooms` overwrites admin edits on every redeploy
 
 `build.sh` calls `python manage.py seed_rooms` on **every build**, and the command does not
 just insert — it force-overwrites existing rows:
@@ -140,7 +140,7 @@ if not created:
     hostel.save()          # ← unconditional overwrite of live config
 ```
 
-Reproduced: a warden sets Block A to `price=99999, capacity=6`, then one redeploy runs:
+Reproduced: an admin sets Block A to `price=99999, capacity=6`, then one redeploy runs:
 
 ```
 before seed: price=99999 capacity=6   →   after one build.sh: price=60000 capacity=4

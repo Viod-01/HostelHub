@@ -1,7 +1,7 @@
 """
 HostelHub's test suite.
 
-The decision path (warden approves/rejects) is where correctness matters
+The decision path (admin approves/rejects) is where correctness matters
 most: it writes bed counts, and it is exactly the code that concurrency
 bugs bite. These tests run on any database (sqlite in dev, Postgres in
 prod). The threaded concurrency tests live in test_concurrency.py and
@@ -43,7 +43,7 @@ def make_student(username="student1", matric="MAT/001"):
 
 
 def decide(booking_pk, decision, staff):
-    """Call the booking_decision view the way a warden's browser would."""
+    """Call the booking_decision view the way an admin's browser would."""
     request = RequestFactory().post(f"/dashboard/admin/bookings/{booking_pk}/{decision}/")
     request.user = staff
     # The messages framework needs storage on the request; the test client
@@ -57,7 +57,7 @@ def decide(booking_pk, decision, staff):
 
 class BookingDecisionTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user("warden", password="pw", is_staff=True)
+        self.staff = User.objects.create_user("admin", password="pw", is_staff=True)
         self.hostel = make_hostel(capacity=2)
         self.room = make_room(self.hostel, occupied=1)      # exactly one bed free
         self.student = make_student()
@@ -75,7 +75,7 @@ class BookingDecisionTests(TestCase):
         self.assertIsNotNone(self.booking.decided_at)
 
     def test_double_decide_is_a_noop(self):
-        # A double-click (or two wardens) must not count the bed twice.
+        # A double-click (or two admins) must not count the bed twice.
         decide(self.booking.pk, "approved", self.staff)
         first_at = Booking.objects.get(pk=self.booking.pk).decided_at
         decide(self.booking.pk, "approved", self.staff)
@@ -143,7 +143,7 @@ class OneActiveBookingRuleTests(TestCase):
 
 class ComplaintTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user("warden", password="pw", is_staff=True)
+        self.staff = User.objects.create_user("admin", password="pw", is_staff=True)
         self.student = make_student()
         self.client.login(username="student1", password="pw-12345!")
 
@@ -180,7 +180,7 @@ class ComplaintTests(TestCase):
         self.client.post("/dashboard/complaints/", {"category": "water"})
         self.assertEqual(Complaint.objects.count(), 0)
 
-    def test_warden_manages_complaints_through_the_pipeline(self):
+    def test_admin_manages_complaints_through_the_pipeline(self):
         complaint = Complaint.objects.create(
             student=self.student, category="water", description="No water on floor 2"
         )
@@ -192,7 +192,7 @@ class ComplaintTests(TestCase):
             hostel=hostel, name="Mrs. Margaret Okoye", phone="0803 111 2223"
         )
         self.client.logout()
-        self.client.login(username="warden", password="pw")
+        self.client.login(username="admin", password="pw")
 
         # the full pipeline: review → assign → in progress → resolved → closed
         url = f"/dashboard/admin/complaints/{complaint.pk}/"
@@ -209,13 +209,13 @@ class ComplaintTests(TestCase):
         # five transitions = five timeline entries
         self.assertEqual(complaint.updates.count(), 5)
 
-    def test_student_sees_the_warden_feedback(self):
+    def test_student_sees_the_admin_feedback(self):
         complaint = Complaint.objects.create(
             student=self.student, category="plumbing", description="Leaking tap"
         )
         self.client.logout()
-        User.objects.create_user("warden2", password="pw", is_staff=True)
-        self.client.login(username="warden2", password="pw")
+        User.objects.create_user("admin2", password="pw", is_staff=True)
+        self.client.login(username="admin2", password="pw")
         self.client.post(
             f"/dashboard/admin/complaints/{complaint.pk}/",
             {"do": "review", "note": "Plumber scheduled for tomorrow morning."},
@@ -251,7 +251,7 @@ class ComplaintTests(TestCase):
             student=self.student, category="other", description="x"
         )
         self.client.logout()
-        self.client.login(username="warden", password="pw")
+        self.client.login(username="admin", password="pw")
         self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/", {"do": "teleport"})
         complaint.refresh_from_db()
         self.assertEqual(complaint.status, "open")
@@ -262,7 +262,7 @@ class ComplaintTests(TestCase):
             student=self.student, category="other", description="x"
         )
         self.client.logout()
-        self.client.login(username="warden", password="pw")
+        self.client.login(username="admin", password="pw")
         url = f"/dashboard/admin/complaints/{complaint.pk}/"
         self.client.post(url, {"do": "review"})
         self.client.post(url, {"do": "review"})      # stale double-click
@@ -275,7 +275,7 @@ class ComplaintTests(TestCase):
             student=self.student, category="other", description="x"
         )
         self.client.logout()
-        self.client.login(username="warden", password="pw")
+        self.client.login(username="admin", password="pw")
         response = self.client.post(
             f"/dashboard/admin/complaints/{complaint.pk}/", {"do": "assign"}, follow=True
         )
@@ -316,9 +316,9 @@ class BlockSupervisorDisplayTests(TestCase):
         self.assertContains(response, "Mrs. Margaret Okoye")
         self.assertContains(response, "John Okafor")
 
-    def test_warden_dashboard_shows_real_supervisors_not_placeholders(self):
-        staff = User.objects.create_user("warden", password="pw", is_staff=True)
-        self.client.login(username="warden", password="pw")
+    def test_admin_dashboard_shows_real_supervisors_not_placeholders(self):
+        staff = User.objects.create_user("admin", password="pw", is_staff=True)
+        self.client.login(username="admin", password="pw")
         response = self.client.get("/dashboard/admin/")
         self.assertContains(response, "Mrs. Margaret Okoye")
         self.assertNotContains(response, "Okoye</div><div class=\"supervisor-block\">Block B")
@@ -388,11 +388,11 @@ class ChartTests(TestCase):
     timestamps — one grouped-count query per line."""
 
     def setUp(self):
-        self.staff = User.objects.create_user("warden", password="pw", is_staff=True)
+        self.staff = User.objects.create_user("admin", password="pw", is_staff=True)
         self.student = make_student()
 
     def test_admin_overview_renders_both_charts(self):
-        self.client.login(username="warden", password="pw")
+        self.client.login(username="admin", password="pw")
         response = self.client.get("/dashboard/admin/")
         self.assertContains(response, "Applications — last 8 weeks")
         self.assertContains(response, "Complaints — last 8 weeks")
@@ -499,7 +499,7 @@ class ActiveApplicationUxTests(TestCase):
 
 class LogoutPlacementTests(TestCase):
     """Log Out used to be buried in the dashboard's quick links, absent from
-    the booking page, and missing entirely from the warden dashboard."""
+    the booking page, and missing entirely from the admin dashboard."""
 
     def test_student_pages_have_top_right_logout(self):
         hostel = make_hostel()
@@ -512,8 +512,8 @@ class LogoutPlacementTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, "Log Out")
 
-    def test_warden_dashboard_has_logout(self):
-        User.objects.create_user("warden2", password="pw", is_staff=True)
-        self.client.login(username="warden2", password="pw")
+    def test_admin_dashboard_has_logout(self):
+        User.objects.create_user("admin2", password="pw", is_staff=True)
+        self.client.login(username="admin2", password="pw")
         response = self.client.get("/dashboard/admin/")
         self.assertContains(response, "Log out")

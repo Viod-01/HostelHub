@@ -9,7 +9,7 @@ toc: false
 
 # HostelHub
 
-A self-service room portal for a 20-block student hostel — browse vacancies, apply for a bed, and let the warden approve it.
+A self-service room portal for a 20-block student hostel — browse vacancies, apply for a bed, and let the admin approve it.
 
 Built with Django 6.1. No queues at the porter's lodge, no paper forms, no "come back tomorrow".
 
@@ -27,7 +27,7 @@ Built with Django 6.1. No queues at the porter's lodge, no paper forms, no "come
 | **Browse** | Every room with at least one free bed, filtered and searchable by hostel block |
 | **Apply** | One active application per student, with session year and special requests |
 | **Track** | Live status on the student dashboard: `pending` → `approved` / `rejected` |
-| **Decide** | Warden approves or rejects applications, with capacity enforced on approval |
+| **Decide** | Admin approves or rejects applications, with capacity enforced on approval |
 | **Onboard staff** | Anyone can request admin access; the account stays locked until an existing admin approves it |
 
 The inventory is real, not mocked: 20 hostel blocks × 51 rooms = **1,020 rooms / 2,295 beds**, seeded by a management command and computed live from the database in the admin overview.
@@ -45,7 +45,7 @@ pip install -r requirements.txt
 
 python manage.py migrate
 python manage.py seed_rooms                          # creates all 20 blocks; safe to re-run
-python manage.py createsuperuser                     # your first warden account
+python manage.py createsuperuser                     # your first admin account
 
 python manage.py runserver
 ```
@@ -54,7 +54,7 @@ Open http://127.0.0.1:8000
 
 > **Why `createsuperuser`?** Staff approvals are gated on `is_staff`. The first approved
 > account has to come from somewhere, so bootstrap one superuser locally — after that,
-> new wardens come in through the "Request Access" flow instead.
+> new admins come in through the "Request Access" flow instead.
 
 ### Environment
 
@@ -83,9 +83,9 @@ DATABASE_URL=sqlite:///db.sqlite3
 listing only contains rooms that have one.
 ![Room listing with per-bed vacancy indicators](docs/img/03-listing.jpg)
 
-**Warden side** — occupancy across every block with pending applications and pending staff
+**Admin side** — occupancy across every block with pending applications and pending staff
 requests in the same view, which is the half that makes it a product rather than a browse page.
-![Warden admin dashboard with occupancy stats](docs/img/10-admin-dashboard.jpg)
+![Admin admin dashboard with occupancy stats](docs/img/10-admin-dashboard.jpg)
 
 ---
 
@@ -140,7 +140,7 @@ Enforced in `booking()` rather than with a DB constraint, and it deliberately tr
 
 ### 2. Vacancy is checked twice, at the right moments
 
-A student applying to a full room is bounced back to the listing (`room.is_full`), and a warden approving into a room that filled up while the application sat pending is refused with an explicit message. Beds are only claimed at approval — a pending application reserves nothing, so the vacancy you see on the listing page is genuinely available.
+A student applying to a full room is bounced back to the listing (`room.is_full`), and an admin approving into a room that filled up while the application sat pending is refused with an explicit message. Beds are only claimed at approval — a pending application reserves nothing, so the vacancy you see on the listing page is genuinely available.
 
 ### Self-service staff access, without a privilege-escalation hole
 
@@ -205,12 +205,12 @@ Static files are served by WhiteNoise and `python manage.py check --deploy` is c
 
 Stated plainly, because a portfolio project is more credible for them than without them:
 
-- **Booking acceptance is not atomic.** `booking_decision` does a read-modify-write on `occupied_beds` without `transaction.atomic()` + `select_for_update()`, so two wardens approving simultaneously could overbook the last bed. The `is_full` guard makes this a rare race, not a common one.
+- **Booking acceptance is not atomic.** `booking_decision` does a read-modify-write on `occupied_beds` without `transaction.atomic()` + `select_for_update()`, so two admins approving simultaneously could overbook the last bed. The `is_full` guard makes this a rare race, not a common one.
 - **No password reset or profile editing.** A forgotten password has no self-service path; the only recovery is editing `auth_user` in Django admin. The login page no longer offers a `Forgot password?` link for it — build the flow before restoring the control.
 - **The listing page sends every room and hides most of it.** ~1,020 cards are rendered server-side (about 1 MB of HTML) and trimmed to a 5-per-block preview in client JS, because `listing()` has no limit or pagination. Correct on screen, wasteful on the wire.
 - **Photos are `picsum.photos` placeholders**, resolved at runtime by a third party, and the favicon is a `.jpg` declared as `image/png`. Swap in real block photography before showing this to anyone who might take the images literally.
 - **A room holds beds, not people.** `occupied_beds` is an integer; nothing links an approved booking to a specific bed, and there is no move-out or cancellation path that releases one.
-- **Decisions have no author.** `Booking` records `decided_at` but not which warden approved, so there is no audit trail.
+- **Decisions have no author.** `Booking` records `decided_at` but not which admin approved, so there is no audit trail.
 - **No tests, and no CI.** `portal/tests.py` is still the empty scaffold. The behaviours on this page were confirmed by hand against a running instance, which is not a substitute.
 - **Rejection is terminal.** A rejected student must register a fresh account to reapply, and the rejected application stays on their dashboard.
 
@@ -221,7 +221,7 @@ Worth listing because each was a live bug, not a code-smell, and the fixes are i
 - `Room.room_number` was `unique=True` in the model but **the constraint never reached the schema** — the initial migration omitted it. Two rooms sharing a number made `detail()`/`booking()` raise `MultipleObjectsReturned` (HTTP 500), since both look rooms up by number with `.get()`.
 - `register_view` wrote `User` and `StudentProfile` in two unguarded steps, so a failure between them left an **active account that could log in, 404 on every page, and could never re-register** (its matric number was taken). Now wrapped in `transaction.atomic()` with `level` and `matric` validated first.
 - `whitenoise` was installed but absent from `MIDDLEWARE`, so `/static/` was 404 in production; and `STATICFILES_STORAGE` was a **no-op since Django 5.1 removed it**, leaving `STORAGES` on the plain default.
-- `seed_rooms` force-saved `price_per_session`/`capacity_per_room` on every block, and `build.sh` runs it on **every deploy** — so a warden's admin edits were silently reverted on the next push. It is now insert-only.
+- `seed_rooms` force-saved `price_per_session`/`capacity_per_room` on every block, and `build.sh` runs it on **every deploy** — so edits made in the data admin were silently reverted on the next push. It is now insert-only.
 - `request_access` never checked email uniqueness, while `admin_login_submit` resolves identifiers via `filter(email=...).first()` — two staff requests sharing an email could authenticate against the first account.
 - `admin_login.html` rendered its own generic text instead of the view's messages, so every rejection on the staff page said the same thing.
 - `landing()` ran no query, so the hero counts and per-block "vacant" chips were **hardcoded HTML** that would not change as rooms filled. They are computed now; the "24h" figure is labelled as a target, because nothing measures actual decision latency yet.
@@ -255,4 +255,4 @@ Released under the MIT License.
 
 ---
 
-*Three shots, one per surface that matters: the landing hero above, the student-side listing, and the warden dashboard. They were captured from the app running locally (Django 6.1 + SQLite, `seed_rooms` data) — `python manage.py seed_rooms` gives a clean, empty-inventory start if you want to re-shoot them.*
+*Three shots, one per surface that matters: the landing hero above, the student-side listing, and the admin dashboard. They were captured from the app running locally (Django 6.1 + SQLite, `seed_rooms` data) — `python manage.py seed_rooms` gives a clean, empty-inventory start if you want to re-shoot them.*

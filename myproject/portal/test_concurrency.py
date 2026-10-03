@@ -7,7 +7,7 @@ by sqlite. Run them against Postgres with:
 
     DATABASE_URL=postgres://user:pass@host:5432/dbname python manage.py test portal.test_concurrency
 
-Each test fires two "wardens" at the exact same moment (a threading.Barrier
+Each test fires two "admins" at the exact same moment (a threading.Barrier
 synchronises them) and asserts the invariant that must hold no matter how
 their work interleaves: a bed is counted once, a room is never overbooked,
 a booking is decided once.
@@ -33,7 +33,7 @@ class ConcurrentDecisionTests(TransactionTestCase):
     # other connections must be able to see and lock these rows.
 
     def setUp(self):
-        self.staff = User.objects.create_user("warden", password="pw", is_staff=True)
+        self.staff = User.objects.create_user("admin", password="pw", is_staff=True)
         self.hostel = Hostel.objects.create(
             name="Test Block", room_type="shared", capacity_per_room=2,
             price_per_session=60000,
@@ -46,7 +46,7 @@ class ConcurrentDecisionTests(TransactionTestCase):
         setattr(request, "session", "session")
         setattr(request, "_messages", FallbackStorage(request))
         try:
-            barrier.wait()                      # both wardens click at once
+            barrier.wait()                      # both admins click at once
             results.append(booking_decision(request, booking_pk, decision))
         finally:
             connection.close()                  # don't leak this thread's connection
@@ -65,7 +65,7 @@ class ConcurrentDecisionTests(TransactionTestCase):
             t.join()
         return results
 
-    def test_two_wardens_approving_the_same_booking_count_it_once(self):
+    def test_two_admins_approving_the_same_booking_count_it_once(self):
         room = Room.objects.create(hostel=self.hostel, room_number="T-101", occupied_beds=0)
         student = User.objects.create_user("student", password="pw")
         StudentProfile.objects.create(user=student, matric_number="MAT/001", department="CS", level=200)

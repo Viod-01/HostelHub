@@ -609,7 +609,7 @@ def booking_decision(request, booking_id, decision):
 
     # Race-safe decide, all inside one transaction:
     # 1. select_for_update() makes the DATABASE queue concurrent deciders on
-    #    the same rows. Previously two wardens (or one double-click) could
+    #    the same rows. Previously two admins (or one double-click) could
     #    both read "pending", both pass the is_full check, and both bump
     #    occupied_beds — double-counting a bed or overbooking the last one.
     # 2. Re-check the status INSIDE the lock: if someone decided while we
@@ -705,7 +705,7 @@ def complaints_page(request):
 @never_cache
 @staff_member_required(login_url="admin_login")
 def complaint_detail(request, complaint_id):
-    """The warden's complaint management page. GET shows the complaint, its
+    """The admin's complaint management page. GET shows the complaint, its
     timeline, and the action form; POST advances the workflow:
 
         Reported → In Review → Assigned → In Progress → Resolved → Closed

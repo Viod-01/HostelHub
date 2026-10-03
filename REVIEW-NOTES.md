@@ -109,7 +109,7 @@ else:
     booking_obj.room.save()              # write
 ```
 
-Two wardens approving into the last bed at the same moment both pass `is_full`,
+Two admins approving into the last bed at the same moment both pass `is_full`,
 and the room ends up over capacity. Fix:
 
 ```python
@@ -213,7 +213,7 @@ at all, so a signed-in student still sees "Log In" on the landing page.
   `CharField(max_length=20)` with no validator.
 - **No rejection reason field.** `Booking` records `decided_at` and `status` but no
   `rejection_reason` and no `decided_by`. A student told "rejected" has nothing to
-  act on, and there's no audit trail of which warden decided.
+  act on, and there's no audit trail of which admin decided.
 - **`department` is always empty for students.** `register_view` creates
   `StudentProfile(department="", ...)`, so the admin "Students" table has a column
   that's blank for everyone. Either collect it at registration or drop it.

@@ -47,7 +47,7 @@ class Command(BaseCommand):
             )
             # Insert-only: build.sh runs this command on every deploy, and
             # overwriting an existing block would silently undo any price or
-            # capacity a warden changed in the admin between deploys.
+            # capacity an admin changed in the admin between deploys.
             if not created:
                 self.stdout.write(self.style.WARNING(
                     f"{name}: already seeded — left as-is (use the admin to change prices)"
