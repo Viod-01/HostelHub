@@ -380,6 +380,57 @@ class ListingPaginationTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+# ------------------------------------------------------- line charts
+
+class ChartTests(TestCase):
+    """The SVG line charts on the admin overview and the student's
+    complaints page. Charts are computed by portal/charts.py from real
+    timestamps — one grouped-count query per line."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user("warden", password="pw", is_staff=True)
+        self.student = make_student()
+
+    def test_admin_overview_renders_both_charts(self):
+        self.client.login(username="warden", password="pw")
+        response = self.client.get("/dashboard/admin/")
+        self.assertContains(response, "Applications — last 8 weeks")
+        self.assertContains(response, "Complaints — last 8 weeks")
+        self.assertContains(response, "<polyline")
+
+    def test_student_complaints_page_renders_their_chart(self):
+        self.client.login(username="student1", password="pw-12345!")
+        response = self.client.get("/dashboard/complaints/")
+        self.assertContains(response, "Your complaints — last 6 months")
+        self.assertContains(response, "<polyline")
+
+    def test_chart_counts_land_in_the_right_bucket(self):
+        from .charts import build_line_chart
+        from .models import Complaint as C
+        hostel = make_hostel()
+        make_room(hostel, "T-101")
+        C.objects.create(student=self.student, category="water", description="a")
+        C.objects.create(student=self.student, category="water", description="b")
+        chart = build_line_chart(
+            "t", [{"name": "Filed", "color": "#fff",
+                   "qs": C.objects.filter(student=self.student),
+                   "field": "created_at"}],
+        )
+        # both complaints were created 'now', so the newest bucket holds 2
+        self.assertEqual(chart["series"][0]["last"], 2)
+        # dots exist for every bucket (8 weekly buckets)
+        self.assertEqual(len(chart["series"][0]["dots"]), 8)
+
+    def test_empty_data_still_renders_a_sane_chart(self):
+        from .charts import build_line_chart
+        chart = build_line_chart(
+            "t", [{"name": "Applied", "color": "#fff",
+                   "qs": Booking.objects.none(), "field": "applied_at"}],
+        )
+        # flat line at zero, y-axis floors at a small round number
+        self.assertEqual(chart["grid"][2]["label"], "4")
+
+
 # -------------------------------------------------------- public pages
 
 class PublicPageSmokeTests(TestCase):

@@ -15,6 +15,7 @@ from .models import (
     Hostel, Room, StudentProfile, Booking, StaffAccessRequest, Complaint,
     ComplaintUpdate, BlockSupervisor,
 )
+from .charts import build_line_chart
 
 # mirrors the <select> options on the register form
 LEVEL_CHOICES = {100, 200, 300, 400, 500}
@@ -551,6 +552,21 @@ def admin_dashboard(request):
         "complaints": complaints,
         "open_complaint_count": open_complaint_count,
         "supervisors_exist": BlockSupervisor.objects.exists(),
+        "apps_chart": build_line_chart(
+            "Applications — last 8 weeks",
+            [{"name": "Applied", "color": "#E8A33D",
+              "qs": Booking.objects.all(), "field": "applied_at"}],
+        ),
+        "complaints_chart": build_line_chart(
+            "Complaints — last 8 weeks",
+            [
+                {"name": "Filed", "color": "#E8C33D",
+                 "qs": Complaint.objects.all(), "field": "created_at"},
+                {"name": "Resolved", "color": "#7FBF8F",
+                 "qs": Complaint.objects.filter(resolved_at__isnull=False),
+                 "field": "resolved_at"},
+            ],
+        ),
         "staff_requests": staff_requests,
         "pending_staff_requests": pending_staff_requests,
         "pending_staff_count": pending_staff_requests.count(),
@@ -669,6 +685,20 @@ def complaints_page(request):
         ))
         .order_by("-created_at"),
         "complaint_categories": Complaint.CATEGORY_CHOICES,
+        "my_chart": build_line_chart(
+            "Your complaints — last 6 months",
+            [
+                {"name": "Filed", "color": "#E8C33D",
+                 "qs": Complaint.objects.filter(student=request.user),
+                 "field": "created_at"},
+                {"name": "Resolved", "color": "#7FBF8F",
+                 "qs": Complaint.objects.filter(
+                     student=request.user, resolved_at__isnull=False
+                 ),
+                 "field": "resolved_at"},
+            ],
+            mode="month", n=6,
+        ),
     })
 
 
