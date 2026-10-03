@@ -391,12 +391,13 @@ class ChartTests(TestCase):
         self.staff = User.objects.create_user("admin", password="pw", is_staff=True)
         self.student = make_student()
 
-    def test_admin_overview_renders_both_charts(self):
+    def test_admin_overview_has_no_charts(self):
+        # the overview charts were removed by request; the stat cards and
+        # the student-side chart remain. Assert the removal sticks.
         self.client.login(username="admin", password="pw")
         response = self.client.get("/dashboard/admin/")
-        self.assertContains(response, "Applications — last 8 weeks")
-        self.assertContains(response, "Complaints — last 8 weeks")
-        self.assertContains(response, "<polyline")
+        self.assertNotContains(response, "last 8 weeks")
+        self.assertNotContains(response, "<polyline")
 
     def test_student_complaints_page_renders_their_chart(self):
         self.client.login(username="student1", password="pw-12345!")

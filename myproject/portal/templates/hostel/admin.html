@@ -205,10 +205,6 @@
   .badge.in_progress { background: rgba(108,160,216,0.15); color: #6CA0D8; }
   .badge.resolved { background: rgba(127,191,143,0.14); color: var(--green); }
   .badge.closed { background: rgba(93,106,140,0.2); color: var(--slate-dim); }
-
-  /* two charts side by side on the overview, stacked on narrow screens */
-  .chart-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-  @media (max-width: 1000px) { .chart-duo { grid-template-columns: 1fr; } }
   .badge.vacant { background: rgba(127,191,143,0.14); color: var(--green); }
   .badge.full { background: rgba(232,99,107,0.14); color: var(--red); }
 
@@ -306,12 +302,6 @@
         <div class="stat-card"><div class="num">{{ total_vacant }}</div><div class="label">Vacant Beds</div><div class="delta up">{{ vacant_pct }}% availability</div></div>
         <div class="stat-card"><div class="num">{{ pending_count }}</div><div class="label">Pending Applications</div><div class="delta warn">Needs review</div></div>
         <div class="stat-card"><div class="num">{{ total_occupied }}</div><div class="label">Occupied Beds</div><div class="delta">{{ occupied_pct }}% occupancy</div></div>
-      </div>
-
-      <!-- progress over time: applications + complaints (pure SVG, no libs) -->
-      <div class="chart-duo">
-        <div class="panel">{% include "hostel/_chart.html" with chart=apps_chart %}</div>
-        <div class="panel">{% include "hostel/_chart.html" with chart=complaints_chart %}</div>
       </div>
 
       <div class="panel occupancy-panel" style="--vacant-pct: {{ vacant_pct }}%;">

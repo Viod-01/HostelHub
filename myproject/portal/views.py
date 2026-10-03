@@ -551,21 +551,6 @@ def admin_dashboard(request):
         "complaints": complaints,
         "open_complaint_count": open_complaint_count,
         "supervisors_exist": BlockSupervisor.objects.exists(),
-        "apps_chart": build_line_chart(
-            "Applications — last 8 weeks",
-            [{"name": "Applied", "color": "#E8A33D",
-              "qs": Booking.objects.all(), "field": "applied_at"}],
-        ),
-        "complaints_chart": build_line_chart(
-            "Complaints — last 8 weeks",
-            [
-                {"name": "Filed", "color": "#E8C33D",
-                 "qs": Complaint.objects.all(), "field": "created_at"},
-                {"name": "Resolved", "color": "#7FBF8F",
-                 "qs": Complaint.objects.filter(resolved_at__isnull=False),
-                 "field": "resolved_at"},
-            ],
-        ),
         "staff_requests": staff_requests,
         "pending_staff_requests": pending_staff_requests,
         "pending_staff_count": pending_staff_requests.count(),
