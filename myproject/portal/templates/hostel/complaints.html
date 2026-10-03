@@ -100,9 +100,21 @@
     .hi-top strong { font-size: 0.86rem; }
     .badge { font-size: 0.68rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; }
     .badge.open { background: rgba(232,195,61,0.14); color: var(--amber); }
+    .badge.review { background: rgba(147,160,188,0.16); color: var(--slate); }
+    .badge.assigned { background: rgba(232,163,61,0.15); color: var(--gold); }
+    .badge.in_progress { background: rgba(108,160,216,0.15); color: #6CA0D8; }
     .badge.resolved { background: rgba(127,191,143,0.14); color: var(--green); }
+    .badge.closed { background: rgba(93,106,140,0.2); color: var(--slate-dim); }
     .hi-desc { font-size: 0.86rem; color: var(--slate); line-height: 1.5; }
     .hi-meta { font-size: 0.72rem; color: var(--slate-dim); margin-top: 7px; }
+    .hi-assigned { font-size: 0.75rem; color: var(--gold-soft); margin-top: 6px; }
+
+    /* the feedback trail: every action the hostel office took */
+    .trail { margin-top: 10px; border-top: 1px dashed rgba(147,160,188,0.2); padding-top: 9px; display: flex; flex-direction: column; gap: 7px; }
+    .trail-item { font-size: 0.78rem; color: var(--slate); line-height: 1.45; }
+    .trail-item .t-head { color: var(--off-white); font-weight: 600; }
+    .trail-item .t-when { color: var(--slate-dim); font-size: 0.7rem; margin-left: 6px; }
+    .trail-item .t-note { color: var(--slate); margin-top: 1px; }
 
     .empty { color: var(--slate-dim); font-size: 0.86rem; padding: 18px 0 8px; text-align: center; }
 
@@ -166,15 +178,28 @@
       <h2>Your complaints</h2>
       <p class="sub">Most recent first</p>
       {% for c in complaints %}
-      <div class="history-item {% if c.status == 'resolved' %}resolved{% endif %}">
+      <div class="history-item {% if c.status == 'resolved' or c.status == 'closed' %}resolved{% endif %}">
         <div class="hi-top">
           <strong>{{ c.get_category_display }}</strong>
           <span class="badge {{ c.status }}">{{ c.get_status_display }}</span>
         </div>
         <div class="hi-desc">{{ c.description }}</div>
+        {% if c.assigned_to %}
+        <div class="hi-assigned">Being handled by {{ c.assigned_to.name }} ({{ c.assigned_to.hostel.name }})</div>
+        {% endif %}
         <div class="hi-meta">
           Reported {{ c.created_at|timesince }} ago{% if c.resolved_at %} &middot; resolved {{ c.resolved_at|timesince }} ago{% endif %}
         </div>
+        {% if c.updates.all %}
+        <div class="trail">
+          {% for u in c.updates.all %}
+          <div class="trail-item">
+            <span class="t-head">{{ u.get_status_display }}</span><span class="t-when">{{ u.created_at|timesince }} ago</span>
+            {% if u.note %}<div class="t-note">{{ u.note }}</div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
       {% empty %}
       <div class="empty">Nothing yet — complaints you submit will appear here with their status.</div>

@@ -197,7 +197,11 @@
   .badge.approved { background: rgba(127,191,143,0.14); color: var(--green); }
   .badge.rejected { background: rgba(232,99,107,0.14); color: var(--red); }
   .badge.open { background: rgba(232,195,61,0.14); color: var(--amber); }
+  .badge.review { background: rgba(147,160,188,0.16); color: var(--slate); }
+  .badge.assigned { background: rgba(232,163,61,0.15); color: var(--gold); }
+  .badge.in_progress { background: rgba(108,160,216,0.15); color: #6CA0D8; }
   .badge.resolved { background: rgba(127,191,143,0.14); color: var(--green); }
+  .badge.closed { background: rgba(93,106,140,0.2); color: var(--slate-dim); }
   .badge.vacant { background: rgba(127,191,143,0.14); color: var(--green); }
   .badge.full { background: rgba(232,99,107,0.14); color: var(--red); }
 
@@ -580,13 +584,13 @@
       <div class="page-head">
         <div>
           <h1>Complaints</h1>
-          <p>Issues reported by students — mark them resolved as they're fixed.</p>
+          <p>Issues reported by students — work them through the pipeline.</p>
         </div>
       </div>
 
       <div class="panel">
         <table>
-          <thead><tr><th>Reported</th><th>Student</th><th>Category</th><th>Problem</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Reported</th><th>Student</th><th>Category</th><th>Problem</th><th>Assigned</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
             {% for c in complaints %}
             <tr>
@@ -596,23 +600,13 @@
                 <div><div>{{ c.student.get_full_name|default:c.student.username }}</div><div class="matric">{{ c.student.studentprofile.matric_number }}</div></div>
               </td>
               <td>{{ c.get_category_display }}</td>
-              <td style="max-width:360px;">{{ c.description }}</td>
+              <td style="max-width:300px;">{{ c.description|truncatechars:80 }}</td>
+              <td>{% if c.assigned_to %}{{ c.assigned_to.name }}{% else %}—{% endif %}</td>
               <td><span class="badge {{ c.status }}">{{ c.get_status_display }}</span></td>
-              <td class="row-actions">
-                {% if c.status == 'open' %}
-                <form method="post" action="{% url 'complaint_resolve' c.id %}" style="display:inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="icon-btn approve" title="Mark resolved">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7FBF8F" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
-                  </button>
-                </form>
-                {% else %}
-                <span style="font-size:0.76rem; color: var(--slate-dim);">Resolved {{ c.resolved_at|timesince }} ago</span>
-                {% endif %}
-              </td>
+              <td><a href="{% url 'complaint_detail' c.id %}" style="font-size:0.8rem; color:var(--gold-soft);">Manage &rarr;</a></td>
             </tr>
             {% empty %}
-            <tr class="empty-row"><td colspan="6">No complaints yet.</td></tr>
+            <tr class="empty-row"><td colspan="7">No complaints yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>

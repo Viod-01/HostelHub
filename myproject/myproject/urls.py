@@ -33,5 +33,5 @@ urlpatterns = [
 
     # Complaints
     path("dashboard/complaints/", views.complaints_page, name="complaints"),
-    path("dashboard/admin/complaints/<int:complaint_id>/resolve/", views.complaint_resolve, name="complaint_resolve"),
+    path("dashboard/admin/complaints/<int:complaint_id>/", views.complaint_detail, name="complaint_detail"),
 ]

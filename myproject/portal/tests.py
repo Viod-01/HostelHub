@@ -180,19 +180,51 @@ class ComplaintTests(TestCase):
         self.client.post("/dashboard/complaints/", {"category": "water"})
         self.assertEqual(Complaint.objects.count(), 0)
 
-    def test_warden_resolves_and_it_shows_on_their_dashboard(self):
+    def test_warden_manages_complaints_through_the_pipeline(self):
         complaint = Complaint.objects.create(
             student=self.student, category="water", description="No water on floor 2"
         )
+        hostel = Hostel.objects.create(
+            name="Test Block", room_type="shared", capacity_per_room=4,
+            price_per_session=60000,
+        )
+        supervisor = BlockSupervisor.objects.create(
+            hostel=hostel, name="Mrs. Margaret Okoye", phone="0803 111 2223"
+        )
         self.client.logout()
         self.client.login(username="warden", password="pw")
-        response = self.client.post(
-            f"/dashboard/admin/complaints/{complaint.pk}/resolve/", follow=True
-        )
-        self.assertContains(response, "No water on floor 2")      # on the warden list
+
+        # the full pipeline: review → assign → in progress → resolved → closed
+        url = f"/dashboard/admin/complaints/{complaint.pk}/"
+        self.client.post(url, {"do": "review", "note": "Looking into it."})
+        self.client.post(url, {"do": "assign", "supervisor": str(supervisor.pk)})
+        self.client.post(url, {"do": "in_progress"})
+        self.client.post(url, {"do": "resolved", "note": "Fixed — replaced the washer."})
+        self.client.post(url, {"do": "closed"})
+
         complaint.refresh_from_db()
-        self.assertEqual(complaint.status, "resolved")
-        self.assertIsNotNone(complaint.resolved_at)
+        self.assertEqual(complaint.status, "closed")
+        self.assertEqual(complaint.assigned_to, supervisor)
+        self.assertIsNotNone(complaint.resolved_at)       # stamped at 'resolved'
+        # five transitions = five timeline entries
+        self.assertEqual(complaint.updates.count(), 5)
+
+    def test_student_sees_the_warden_feedback(self):
+        complaint = Complaint.objects.create(
+            student=self.student, category="plumbing", description="Leaking tap"
+        )
+        self.client.logout()
+        User.objects.create_user("warden2", password="pw", is_staff=True)
+        self.client.login(username="warden2", password="pw")
+        self.client.post(
+            f"/dashboard/admin/complaints/{complaint.pk}/",
+            {"do": "review", "note": "Plumber scheduled for tomorrow morning."},
+        )
+        self.client.logout()
+        self.client.login(username="student1", password="pw-12345!")
+        response = self.client.get("/dashboard/complaints/")
+        self.assertContains(response, "In Review")                          # the stage
+        self.assertContains(response, "Plumber scheduled for tomorrow morning.")  # the note
 
     def test_student_sees_the_resolved_status(self):
         complaint = Complaint.objects.create(
@@ -205,26 +237,52 @@ class ComplaintTests(TestCase):
         self.assertContains(response, "Broken window lock")
         self.assertContains(response, "Resolved")
 
-    def test_students_cannot_resolve_complaints(self):
+    def test_students_cannot_open_the_management_page(self):
         complaint = Complaint.objects.create(
             student=self.student, category="other", description="x"
         )
-        response = self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/resolve/")
+        response = self.client.get(f"/dashboard/admin/complaints/{complaint.pk}/")
         self.assertEqual(response.status_code, 302)   # bounced to admin login
         complaint.refresh_from_db()
         self.assertEqual(complaint.status, "open")
 
-    def test_double_resolve_is_a_noop(self):
+    def test_unknown_action_changes_nothing(self):
         complaint = Complaint.objects.create(
             student=self.student, category="other", description="x"
         )
         self.client.logout()
         self.client.login(username="warden", password="pw")
-        self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/resolve/")
-        first_at = Complaint.objects.get(pk=complaint.pk).resolved_at
-        self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/resolve/")
+        self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/", {"do": "teleport"})
         complaint.refresh_from_db()
-        self.assertEqual(complaint.resolved_at, first_at)
+        self.assertEqual(complaint.status, "open")
+        self.assertEqual(complaint.updates.count(), 0)
+
+    def test_duplicate_transition_is_a_noop(self):
+        complaint = Complaint.objects.create(
+            student=self.student, category="other", description="x"
+        )
+        self.client.logout()
+        self.client.login(username="warden", password="pw")
+        url = f"/dashboard/admin/complaints/{complaint.pk}/"
+        self.client.post(url, {"do": "review"})
+        self.client.post(url, {"do": "review"})      # stale double-click
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.status, "review")
+        self.assertEqual(complaint.updates.count(), 1)   # not re-recorded
+
+    def test_assign_without_a_supervisor_is_rejected(self):
+        complaint = Complaint.objects.create(
+            student=self.student, category="other", description="x"
+        )
+        self.client.logout()
+        self.client.login(username="warden", password="pw")
+        response = self.client.post(
+            f"/dashboard/admin/complaints/{complaint.pk}/", {"do": "assign"}, follow=True
+        )
+        self.assertContains(response, "Pick a supervisor")
+        complaint.refresh_from_db()
+        self.assertIsNone(complaint.assigned_to)
+        self.assertEqual(complaint.status, "open")
 
 
 # ---------------------------------------------- block supervisor display

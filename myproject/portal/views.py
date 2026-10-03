@@ -13,7 +13,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from .models import (
     Hostel, Room, StudentProfile, Booking, StaffAccessRequest, Complaint,
-    BlockSupervisor,
+    ComplaintUpdate, BlockSupervisor,
 )
 
 # mirrors the <select> options on the register form
@@ -532,11 +532,13 @@ def admin_dashboard(request):
     )
     pending_staff_requests = staff_requests.filter(status="pending")
 
-    # complaints: open ones first (sorts before "resolved"), newest first
+    # complaints: unfinished ones first, newest first
     complaints = (
-        Complaint.objects.select_related("student").order_by("status", "-created_at")
+        Complaint.objects
+        .select_related("student", "assigned_to", "assigned_to__hostel")
+        .order_by("status", "-created_at")
     )
-    open_complaint_count = complaints.filter(status="open").count()
+    open_complaint_count = complaints.exclude(status__in=["resolved", "closed"]).count()
 
 
     context = {
@@ -628,6 +630,7 @@ def booking_decision(request, booking_id, decision):
     return redirect("admin_dashboard")
 
 COMPLAINT_CATEGORIES = {value for value, _ in Complaint.CATEGORY_CHOICES}
+COMPLAINT_STATUSES = {value for value, _ in Complaint.STATUS_CHOICES}
 
 
 @login_required
@@ -659,6 +662,11 @@ def complaints_page(request):
     return render(request, "hostel/complaints.html", {
         "complaints": Complaint.objects
         .filter(student=request.user)
+        .select_related("assigned_to", "assigned_to__hostel")
+        .prefetch_related(Prefetch(
+            "updates",
+            queryset=ComplaintUpdate.objects.select_related("author"),
+        ))
         .order_by("-created_at"),
         "complaint_categories": Complaint.CATEGORY_CHOICES,
     })
@@ -666,23 +674,76 @@ def complaints_page(request):
 
 @never_cache
 @staff_member_required(login_url="admin_login")
-def complaint_resolve(request, complaint_id):
-    if request.method != "POST":
-        return redirect("admin_dashboard")
+def complaint_detail(request, complaint_id):
+    """The warden's complaint management page. GET shows the complaint, its
+    timeline, and the action form; POST advances the workflow:
 
-    complaint = get_object_or_404(Complaint, pk=complaint_id)
+        Reported → In Review → Assigned → In Progress → Resolved → Closed
 
-    if complaint.status == "resolved":
-        messages.warning(
-            request, "That complaint was already resolved — no changes made."
-        )
-        return redirect("admin_dashboard")
-
-    complaint.status = "resolved"
-    complaint.resolved_at = timezone.now()
-    complaint.save(update_fields=["status", "resolved_at"])
-    messages.success(
-        request,
-        f"Marked the {complaint.get_category_display().lower()} complaint as resolved.",
+    Every action records a ComplaintUpdate (with the optional note), which
+    is what the student sees on their own complaints page."""
+    complaint = get_object_or_404(
+        Complaint.objects.select_related("student", "assigned_to", "assigned_to__hostel"),
+        pk=complaint_id,
     )
-    return redirect("admin_dashboard")
+
+    if request.method == "POST":
+        action = request.POST.get("do", "")
+        note = request.POST.get("note", "").strip()
+        if len(note) > 2000:
+            messages.error(request, "Notes are capped at 2,000 characters.")
+            return redirect("complaint_detail", complaint_id=complaint.pk)
+
+        if action == "assign":
+            try:
+                supervisor = BlockSupervisor.objects.get(pk=request.POST.get("supervisor", ""))
+            except (BlockSupervisor.DoesNotExist, ValueError):
+                messages.error(request, "Pick a supervisor to assign this to.")
+                return redirect("complaint_detail", complaint_id=complaint.pk)
+            complaint.assigned_to = supervisor
+            # assigning implies the workflow has moved on, unless work has
+            # already started (reassigning mid-work keeps the current stage)
+            new_status = "assigned" if complaint.status in ("open", "review") else complaint.status
+            complaint.status = new_status
+            complaint.save(update_fields=["assigned_to", "status"])
+            ComplaintUpdate.objects.create(
+                complaint=complaint, author=request.user, status=new_status,
+                note=note or f"Assigned to {supervisor.name} ({supervisor.hostel.name}).",
+            )
+            messages.success(request, f"Assigned to {supervisor.name}.")
+        elif action in COMPLAINT_STATUSES:
+            if action == complaint.status:
+                messages.warning(request, f"This complaint is already marked {complaint.get_status_display().lower()}.")
+            else:
+                complaint.status = action
+                if action == "resolved" and not complaint.resolved_at:
+                    complaint.resolved_at = timezone.now()
+                complaint.save(update_fields=["status", "resolved_at"])
+                ComplaintUpdate.objects.create(
+                    complaint=complaint, author=request.user, status=action, note=note,
+                )
+                messages.success(request, f"Complaint marked {dict(Complaint.STATUS_CHOICES)[action].lower()}.")
+        else:
+            messages.error(request, "Unknown action — nothing was changed.")
+        return redirect("complaint_detail", complaint_id=complaint.pk)
+
+    # context: the student's current room (if any) helps the office locate
+    # the problem, e.g. "complainant lives in B-204"
+    student_room = (
+        Booking.objects
+        .filter(student=complaint.student, status="approved")
+        .select_related("room", "room__hostel")
+        .first()
+    )
+    updates = complaint.updates.select_related("author").all()
+    supervisors = BlockSupervisor.objects.select_related("hostel").order_by("hostel__name")
+
+    return render(request, "hostel/admin_complaint.html", {
+        "complaint": complaint,
+        "updates": updates,
+        "supervisors": supervisors,
+        "student_room": student_room,
+        # position of the current status in the pipeline (0-5), used to
+        # mark earlier stages as done in the template
+        "status_index": [s for s, _ in Complaint.STATUS_CHOICES].index(complaint.status),
+    })

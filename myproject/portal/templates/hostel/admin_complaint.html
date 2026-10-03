@@ -1,0 +1,255 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HostelHub — Complaint #{{ complaint.pk }}</title>
+  <style>
+    :root {
+      --navy-deep: #14213D;
+      --navy-panel: #1E2F52;
+      --navy-panel-2: #253A63;
+      --gold: #E8A33D;
+      --gold-soft: #F3C374;
+      --off-white: #F4F1EA;
+      --slate: #93A0BC;
+      --slate-dim: #5D6A8C;
+      --green: #7FBF8F;
+      --amber: #E8C33D;
+      --red: #E8636B;
+      --blue: #6CA0D8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+      background: var(--navy-deep);
+      color: var(--off-white);
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px clamp(24px, 6vw, 72px);
+      border-bottom: 1px solid rgba(232,163,61,0.12);
+      background: rgba(20,33,61,0.9);
+    }
+    .brand-mark { display: flex; align-items: center; gap: 10px; }
+    .brand-mark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+    .brand-mark span { font-family: 'Fraunces', serif; font-size: 1.05rem; letter-spacing: 0.03em; }
+    .nav-links { display: flex; gap: 32px; font-size: 0.88rem; color: var(--slate); }
+    .nav-links a:hover { color: var(--gold-soft); }
+    @media (max-width: 760px) { .nav-links { display: none; } }
+
+    .wrap { max-width: 1150px; margin: 0 auto; padding: 36px clamp(18px, 4vw, 40px) 64px; }
+    .crumb { font-size: 0.78rem; color: var(--slate-dim); margin-bottom: 14px; }
+    .crumb a:hover { color: var(--gold-soft); }
+    .page-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
+    .page-head h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(1.5rem, 3vw, 2rem); }
+    .sub { color: var(--slate); font-size: 0.86rem; margin-top: 4px; }
+
+    .grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: start; }
+    @media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--navy-panel);
+      border: 1px solid rgba(147,160,188,0.14);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 22px;
+    }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 14px; }
+    .kv { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-bottom: 1px solid rgba(147,160,188,0.1); font-size: 0.86rem; }
+    .kv:last-child { border-bottom: none; }
+    .kv span:first-child { color: var(--slate-dim); }
+    .kv span:last-child { text-align: right; }
+
+    .badge { font-size: 0.7rem; padding: 5px 12px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; }
+    .badge.open { background: rgba(232,195,61,0.14); color: var(--amber); }
+    .badge.review { background: rgba(147,160,188,0.16); color: var(--slate); }
+    .badge.assigned { background: rgba(232,163,61,0.15); color: var(--gold); }
+    .badge.in_progress { background: rgba(108,160,216,0.15); color: var(--blue); }
+    .badge.resolved { background: rgba(127,191,143,0.14); color: var(--green); }
+    .badge.closed { background: rgba(93,106,140,0.2); color: var(--slate-dim); }
+
+    .description {
+      background: var(--navy-panel-2); border-radius: 12px;
+      padding: 14px 16px; font-size: 0.9rem; color: var(--off-white);
+      line-height: 1.55; margin: 6px 0 4px;
+    }
+
+    .pipeline { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 0.72rem; color: var(--slate-dim); margin: 14px 0 4px; }
+    .pipeline .stage { padding: 4px 10px; border-radius: 14px; border: 1px solid rgba(147,160,188,0.18); }
+    .pipeline .stage.done { border-color: rgba(127,191,143,0.4); color: var(--green); }
+    .pipeline .stage.current { background: var(--gold); border-color: var(--gold); color: var(--navy-deep); font-weight: 700; }
+    .pipeline .arrow { color: rgba(147,160,188,0.4); }
+
+    .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .field label { font-size: 0.76rem; color: var(--slate); letter-spacing: 0.03em; }
+    .field select, .field textarea {
+      background: var(--navy-panel-2); border: 1px solid rgba(147,160,188,0.22);
+      color: var(--off-white); font-family: inherit; font-size: 0.88rem;
+      padding: 11px 12px; border-radius: 10px; width: 100%;
+    }
+    .field textarea { resize: vertical; }
+    .field select:focus, .field textarea:focus { outline: none; border-color: var(--gold); }
+
+    .btn {
+      border: none; cursor: pointer; font-family: inherit; font-weight: 600;
+      font-size: 0.82rem; padding: 10px 16px; border-radius: 9px;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-gold { background: var(--gold); color: var(--navy-deep); }
+    .btn-ghost { background: rgba(147,160,188,0.12); color: var(--off-white); border: 1px solid rgba(147,160,188,0.25); }
+    .btn-green { background: rgba(127,191,143,0.18); color: var(--green); border: 1px solid rgba(127,191,143,0.35); }
+    .btn-dim { background: rgba(93,106,140,0.2); color: var(--slate); border: 1px solid rgba(93,106,140,0.35); }
+    .btn-row { display: flex; gap: 9px; flex-wrap: wrap; }
+
+    .update { padding: 12px 14px; border-radius: 12px; background: var(--navy-panel-2); margin-bottom: 10px; border-left: 3px solid var(--gold); }
+    .update.resolved { border-left-color: var(--green); }
+    .update.closed { border-left-color: var(--slate-dim); }
+    .update-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 5px; }
+    .update-top .who { font-size: 0.78rem; font-weight: 600; }
+    .update-top .when { font-size: 0.7rem; color: var(--slate-dim); }
+    .update .note { font-size: 0.84rem; color: var(--slate); line-height: 1.5; }
+
+    .flash { padding: 12px 16px; border-radius: 12px; background: var(--navy-panel); margin-bottom: 16px; font-size: 0.86rem; border-left: 4px solid var(--green); }
+    .flash.error { border-left-color: var(--red); }
+    .flash.warning { border-left-color: var(--amber); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
+  <div class="nav-links">
+    <a href="{% url 'admin_dashboard' %}">Warden Dashboard</a>
+  </div>
+  <a href="{% url 'logout' %}" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Log Out</a>
+</nav>
+
+<div class="wrap">
+  <div class="crumb"><a href="{% url 'admin_dashboard' %}">Warden Dashboard</a> / Complaints / #{{ complaint.pk }}</div>
+
+  <div class="page-head">
+    <div>
+      <h1>{{ complaint.get_category_display }} complaint <span style="color:var(--slate-dim); font-size:0.7em;">#{{ complaint.pk }}</span></h1>
+      <div class="sub">Reported {{ complaint.created_at|timesince }} ago by {{ complaint.student.get_full_name|default:complaint.student.username }}</div>
+    </div>
+    <span class="badge {{ complaint.status }}">{{ complaint.get_status_display }}</span>
+  </div>
+
+  {% if messages %}
+  {% for message in messages %}
+  <div class="flash {% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% endif %}">{{ message }}</div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="grid">
+
+    <!-- LEFT: the complaint itself -->
+    <div>
+      <div class="card">
+        <h2>The problem</h2>
+        <div class="description">{{ complaint.description }}</div>
+
+        <div class="pipeline">
+          {% for value, label in complaint.STATUS_CHOICES %}
+            {% if not forloop.first %}<span class="arrow">→</span>{% endif %}
+            <span class="stage {% if value == complaint.status %}current{% elif complaint.status != 'open' and forloop.counter0 < status_index %}done{% endif %}">{{ label }}</span>
+          {% endfor %}
+        </div>
+
+        <div class="kv"><span>Student</span><span>{{ complaint.student.get_full_name|default:complaint.student.username }} ({{ complaint.student.studentprofile.matric_number }})</span></div>
+        <div class="kv"><span>Department</span><span>{{ complaint.student.studentprofile.department|default:"—" }}</span></div>
+        {% if student_room %}
+        <div class="kv"><span>Current room</span><span>{{ student_room.room.room_number }}, {{ student_room.room.hostel.name }}</span></div>
+        {% else %}
+        <div class="kv"><span>Current room</span><span>No approved allocation yet</span></div>
+        {% endif %}
+        <div class="kv"><span>Assigned to</span><span>{% if complaint.assigned_to %}{{ complaint.assigned_to.name }} ({{ complaint.assigned_to.hostel.name }}){% else %}—{% endif %}</span></div>
+        <div class="kv"><span>Reported</span><span>{{ complaint.created_at|date:"M j, Y, g:i a" }}</span></div>
+        {% if complaint.resolved_at %}
+        <div class="kv"><span>Resolved</span><span>{{ complaint.resolved_at|date:"M j, Y, g:i a" }}</span></div>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h2>Timeline</h2>
+        {% for u in updates %}
+        <div class="update {% if u.status == 'resolved' %}resolved{% elif u.status == 'closed' %}closed{% endif %}">
+          <div class="update-top">
+            <span class="who">{{ u.author.get_full_name|default:u.author.username }} &rarr; {{ u.get_status_display }}</span>
+            <span class="when">{{ u.created_at|timesince }} ago</span>
+          </div>
+          {% if u.note %}<div class="note">{{ u.note }}</div>{% endif %}
+        </div>
+        {% empty %}
+        <div style="color:var(--slate-dim); font-size:0.86rem;">No actions taken yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- RIGHT: actions -->
+    <div>
+      <div class="card">
+        <h2>Actions</h2>
+        <form method="post" action="{% url 'complaint_detail' complaint.pk %}">
+          {% csrf_token %}
+
+          <div class="field">
+            <label for="note">Note to the student (optional — they see this)</label>
+            <textarea id="note" name="note" rows="3" maxlength="2000" placeholder="e.g. 'Plumber scheduled for tomorrow morning.'"></textarea>
+          </div>
+
+          {% if supervisors %}
+          <div class="field">
+            <label for="supervisor">Assign to supervisor</label>
+            <select id="supervisor" name="supervisor">
+              {% for s in supervisors %}
+              <option value="{{ s.pk }}" {% if complaint.assigned_to_id == s.pk %}selected{% endif %}>{{ s.name }} — {{ s.hostel.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+
+          <div class="btn-row">
+            {% if complaint.status == 'open' %}
+              <button class="btn btn-ghost" name="do" value="review">Start Review</button>
+            {% endif %}
+            {% if supervisors and not complaint.assigned_to %}
+              <button class="btn btn-gold" name="do" value="assign">Assign</button>
+            {% elif supervisors %}
+              <button class="btn btn-ghost" name="do" value="assign">Reassign</button>
+            {% endif %}
+            {% if complaint.status == 'assigned' %}
+              <button class="btn btn-ghost" name="do" value="in_progress">Start Work</button>
+            {% endif %}
+            {% if complaint.status != 'resolved' and complaint.status != 'closed' %}
+              <button class="btn btn-green" name="do" value="resolved">Mark Resolved</button>
+            {% endif %}
+            {% if complaint.status != 'closed' %}
+              <button class="btn btn-dim" name="do" value="closed">Close</button>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+
+      <div class="card" style="color:var(--slate-dim); font-size:0.8rem; line-height:1.6;">
+        <h2 style="color:var(--slate);">How the pipeline works</h2>
+        <strong style="color:var(--slate);">Reported</strong> — the student submitted it.<br>
+        <strong style="color:var(--slate);">In Review</strong> — the office has seen it and is triaging.<br>
+        <strong style="color:var(--slate);">Assigned</strong> — handed to a block supervisor to fix.<br>
+        <strong style="color:var(--slate);">In Progress</strong> — work has started on site.<br>
+        <strong style="color:var(--slate);">Resolved</strong> — the fix is done.<br>
+        <strong style="color:var(--slate);">Closed</strong> — archived; nothing further happens.<br><br>
+        Every action and note appears on the student's complaints page the moment you click.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
