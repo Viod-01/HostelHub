@@ -177,7 +177,7 @@
   </div>
   <div style="display:flex; align-items:center; gap:14px;">
     <a href="{% url 'logout' %}" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Log Out</a>
-    <span class="avatar">{{ request.user.username|slice:":2"|upper }}</span>
+    <span class="avatar">{{ initials }}</span>
   </div>
 </nav>
 

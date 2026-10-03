@@ -431,6 +431,44 @@ class ChartTests(TestCase):
         self.assertEqual(chart["grid"][2]["label"], "4")
 
 
+# --------------------------------------------- avatar initials consistency
+
+class AvatarInitialsTests(TestCase):
+    """Every page used to compute the avatar its own way: the dashboard
+    used name initials, the complaints/booking pages used the first two
+    characters of the username (for students, the matric number). One
+    context processor now feeds every page the same value."""
+
+    def setUp(self):
+        hostel = make_hostel()
+        make_room(hostel, "T-101")
+        self.user = User.objects.create_user(
+            "MAT/0091", password="pw-12345!",
+            first_name="Chika", last_name="Obi",
+        )
+        StudentProfile.objects.create(
+            user=self.user, matric_number="MAT/0091", department="CS", level=200
+        )
+        self.client.login(username="MAT/0091", password="pw-12345!")
+
+    def test_same_initials_on_dashboard_and_complaints_and_booking(self):
+        # name initials are "CO"; the old bug showed "MA" (username prefix)
+        for url in ["/dashboard/", "/dashboard/complaints/", "/hostels/T-101/apply/"]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertContains(response, ">CO<")
+                self.assertNotContains(response, ">MA<")
+
+    def test_admin_pages_use_the_same_formula(self):
+        staff = User.objects.create_user(
+            "SA/0010", password="pw", is_staff=True,
+            first_name="Ngozi", last_name="Eze",
+        )
+        self.client.force_login(staff)
+        response = self.client.get("/dashboard/admin/")
+        self.assertContains(response, ">NE<")
+
+
 # -------------------------------------------------------- public pages
 
 class PublicPageSmokeTests(TestCase):

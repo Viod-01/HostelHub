@@ -391,14 +391,13 @@ def dashboard(request):
         .order_by("-applied_at")
         .first()
     )
-    full_name = request.user.get_full_name()
-    initials = "".join(p[0].upper() for p in full_name.split()[:2]) if full_name else request.user.username[:2].upper()
+    # initials now come from the user_initials context processor (one
+    # formula for every page), not this view
 
     context = {
         "student": student,
         "booking": booking,
-        "full_name": full_name,
-        "initials": initials,
+        "full_name": request.user.get_full_name(),
     }
     return render(request, "hostel/dashboard.html", context)
 
