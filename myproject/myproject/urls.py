@@ -32,6 +32,6 @@ urlpatterns = [
     path("dashboard/admin/staff-requests/<int:request_id>/<str:decision>/", views.staff_request_decision, name="staff_request_decision"),
 
     # Complaints
-    path("dashboard/complaints/submit/", views.complaint_submit, name="complaint_submit"),
+    path("dashboard/complaints/", views.complaints_page, name="complaints"),
     path("dashboard/admin/complaints/<int:complaint_id>/resolve/", views.complaint_resolve, name="complaint_resolve"),
 ]

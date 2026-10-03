@@ -147,8 +147,13 @@ class ComplaintTests(TestCase):
         self.student = make_student()
         self.client.login(username="student1", password="pw-12345!")
 
+    def test_complaints_page_requires_login(self):
+        self.client.logout()
+        response = self.client.get("/dashboard/complaints/")
+        self.assertEqual(response.status_code, 302)   # to the login page
+
     def test_student_submits_and_sees_their_complaint(self):
-        response = self.client.post("/dashboard/complaints/submit/", {
+        response = self.client.post("/dashboard/complaints/", {
             "category": "plumbing",
             "description": "The tap in the corner bathroom is dripping.",
         }, follow=True)
@@ -158,15 +163,21 @@ class ComplaintTests(TestCase):
         self.assertEqual(complaint.status, "open")
         self.assertIsNone(complaint.resolved_at)
 
+    def test_dashboard_no_longer_houses_the_complaint_form(self):
+        # it moved to its own page — the dashboard keeps only a quick link
+        response = self.client.get("/dashboard/")
+        self.assertNotContains(response, "Report a Problem")
+        self.assertContains(response, 'href="/dashboard/complaints/"')
+
     def test_crafted_category_is_refused(self):
         # the <select> is advisory; a hand-built POST can send anything
-        self.client.post("/dashboard/complaints/submit/", {
+        self.client.post("/dashboard/complaints/", {
             "category": "free_wifi", "description": "please",
         })
         self.assertEqual(Complaint.objects.count(), 0)
 
     def test_empty_description_is_refused(self):
-        self.client.post("/dashboard/complaints/submit/", {"category": "water"})
+        self.client.post("/dashboard/complaints/", {"category": "water"})
         self.assertEqual(Complaint.objects.count(), 0)
 
     def test_warden_resolves_and_it_shows_on_their_dashboard(self):
@@ -190,7 +201,7 @@ class ComplaintTests(TestCase):
         complaint.status = "resolved"
         complaint.resolved_at = timezone.now()
         complaint.save()
-        response = self.client.get("/dashboard/")
+        response = self.client.get("/dashboard/complaints/")
         self.assertContains(response, "Broken window lock")
         self.assertContains(response, "Resolved")
 

@@ -398,11 +398,6 @@ def dashboard(request):
         "booking": booking,
         "full_name": full_name,
         "initials": initials,
-        "my_complaints": Complaint.objects
-        .filter(student=request.user)
-        .select_related("student")
-        .order_by("-created_at")[:5],
-        "complaint_categories": Complaint.CATEGORY_CHOICES,
     }
     return render(request, "hostel/dashboard.html", context)
 
@@ -636,31 +631,37 @@ COMPLAINT_CATEGORIES = {value for value, _ in Complaint.CATEGORY_CHOICES}
 
 
 @login_required
-def complaint_submit(request):
-    """Students report a problem from their dashboard (Simple scope:
-    category + description, warden marks it resolved)."""
-    if request.method != "POST":
-        return redirect("dashboard")
+def complaints_page(request):
+    """A dedicated page for reporting problems (used to be a form squeezed
+    onto the dashboard). GET shows the form + the student's full history;
+    POST submits a new complaint."""
+    if request.method == "POST":
+        category = request.POST.get("category", "").strip()
+        description = request.POST.get("description", "").strip()
 
-    category = request.POST.get("category", "").strip()
-    description = request.POST.get("description", "").strip()
+        # the <select> limits choices in the browser, but a crafted POST
+        # doesn't have to use it — validate against the model's own list
+        if category not in COMPLAINT_CATEGORIES:
+            messages.error(request, "Pick a valid problem category.")
+            return redirect("complaints")
+        if not description or len(description) > 2000:
+            messages.error(request, "Describe the problem (up to 2,000 characters).")
+            return redirect("complaints")
 
-    # the <select> limits choices in the browser, but a crafted POST doesn't
-    # have to use it — validate against the model's own category list
-    if category not in COMPLAINT_CATEGORIES:
-        messages.error(request, "Pick a valid problem category.")
-        return redirect("dashboard")
-    if not description or len(description) > 2000:
-        messages.error(request, "Describe the problem (up to 2,000 characters).")
-        return redirect("dashboard")
+        Complaint.objects.create(
+            student=request.user, category=category, description=description
+        )
+        messages.success(
+            request, "Complaint submitted — the hostel office will see it right away."
+        )
+        return redirect("complaints")
 
-    Complaint.objects.create(
-        student=request.user, category=category, description=description
-    )
-    messages.success(
-        request, "Complaint submitted — the hostel office will see it right away."
-    )
-    return redirect("dashboard")
+    return render(request, "hostel/complaints.html", {
+        "complaints": Complaint.objects
+        .filter(student=request.user)
+        .order_by("-created_at"),
+        "complaint_categories": Complaint.CATEGORY_CHOICES,
+    })
 
 
 @never_cache

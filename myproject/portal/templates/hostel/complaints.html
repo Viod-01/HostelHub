@@ -1,0 +1,188 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HostelHub — Report a Problem</title>
+  <style>
+    :root {
+      --navy-deep: #14213D;
+      --navy-panel: #1E2F52;
+      --navy-panel-2: #253A63;
+      --gold: #E8A33D;
+      --gold-soft: #F3C374;
+      --off-white: #F4F1EA;
+      --slate: #93A0BC;
+      --slate-dim: #5D6A8C;
+      --green: #7FBF8F;
+      --amber: #E8C33D;
+      --red: #E8636B;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+      background: var(--navy-deep);
+      color: var(--off-white);
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px clamp(24px, 6vw, 72px);
+      border-bottom: 1px solid rgba(232,163,61,0.12);
+      background: rgba(20,33,61,0.9);
+    }
+    .brand-mark { display: flex; align-items: center; gap: 10px; }
+    .brand-mark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+    .brand-mark span { font-family: 'Fraunces', serif; font-size: 1.05rem; letter-spacing: 0.03em; }
+    .nav-links { display: flex; gap: 32px; font-size: 0.88rem; color: var(--slate); }
+    .nav-links a:hover { color: var(--gold-soft); }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(232,163,61,0.16); color: var(--gold-soft);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.78rem;
+    }
+    @media (max-width: 760px) { .nav-links { display: none; } }
+
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 40px clamp(18px, 4vw, 40px) 64px; }
+    .crumb { font-size: 0.78rem; color: var(--slate-dim); margin-bottom: 14px; }
+    .crumb a:hover { color: var(--gold-soft); }
+    .page-head { margin-bottom: 28px; }
+    .page-head h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(1.7rem, 3.5vw, 2.4rem); margin-bottom: 8px; }
+    .page-head p { color: var(--slate); font-size: 0.92rem; max-width: 560px; }
+
+    .comp-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .comp-grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--navy-panel);
+      border: 1px solid rgba(147,160,188,0.14);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .card h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 4px; }
+    .card .sub { color: var(--slate-dim); font-size: 0.8rem; margin-bottom: 18px; }
+
+    .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .field label { font-size: 0.78rem; color: var(--slate); letter-spacing: 0.03em; }
+    .field select, .field textarea {
+      background: var(--navy-panel-2);
+      border: 1px solid rgba(147,160,188,0.22);
+      color: var(--off-white);
+      font-family: inherit; font-size: 0.9rem;
+      padding: 12px 13px; border-radius: 10px;
+      width: 100%;
+    }
+    .field textarea { resize: vertical; }
+    .field select:focus, .field textarea:focus { outline: none; border-color: var(--gold); }
+
+    .btn-gold {
+      display: inline-block;
+      background: var(--gold); color: var(--navy-deep);
+      font-weight: 600; font-size: 0.88rem;
+      padding: 12px 22px; border-radius: 10px; border: none; cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+      font-family: inherit;
+    }
+    .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(232,163,61,0.28); }
+
+    .history-item {
+      padding: 14px 16px; border-radius: 12px;
+      background: var(--navy-panel-2);
+      border-left: 3px solid var(--amber);
+      margin-bottom: 10px;
+    }
+    .history-item.resolved { border-left-color: var(--green); }
+    .hi-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 5px; }
+    .hi-top strong { font-size: 0.86rem; }
+    .badge { font-size: 0.68rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.02em; }
+    .badge.open { background: rgba(232,195,61,0.14); color: var(--amber); }
+    .badge.resolved { background: rgba(127,191,143,0.14); color: var(--green); }
+    .hi-desc { font-size: 0.86rem; color: var(--slate); line-height: 1.5; }
+    .hi-meta { font-size: 0.72rem; color: var(--slate-dim); margin-top: 7px; }
+
+    .empty { color: var(--slate-dim); font-size: 0.86rem; padding: 18px 0 8px; text-align: center; }
+
+    .flash { padding: 12px 16px; border-radius: 12px; background: var(--navy-panel); margin-bottom: 18px; font-size: 0.88rem; border-left: 4px solid var(--green); }
+    .flash.error { border-left-color: var(--red); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
+  <div class="nav-links">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <a href="{% url 'listing' %}">Hostels</a>
+  </div>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <a href="{% url 'logout' %}" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Log Out</a>
+    <span class="avatar">{{ request.user.username|slice:":2"|upper }}</span>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="crumb"><a href="{% url 'dashboard' %}">Dashboard</a> / Complaints</div>
+
+  <div class="page-head">
+    <h1>Report a Problem</h1>
+    <p>Something broken in your room or block? Tell the hostel office — they see it the moment you submit, and you can track the status here.</p>
+  </div>
+
+  {% if messages %}
+  {% for message in messages %}
+  <div class="flash {% if message.tags == 'error' %}error{% endif %}">{{ message }}</div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="comp-grid">
+
+    <div class="card">
+      <h2>New complaint</h2>
+      <p class="sub">Pick a category and describe the issue</p>
+      <form method="post" action="{% url 'complaints' %}" style="display:flex; flex-direction:column; gap:14px;">
+        {% csrf_token %}
+        <div class="field">
+          <label for="complaint-category">Category</label>
+          <select id="complaint-category" name="category" required>
+            <option value="">What's the problem?</option>
+            {% for value, label in complaint_categories %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="complaint-description">Description</label>
+          <textarea id="complaint-description" name="description" rows="5" maxlength="2000" required placeholder="e.g. The tap in Room B-204's bathroom has been leaking since Monday."></textarea>
+        </div>
+        <button type="submit" class="btn-gold" style="align-self:flex-start;">Submit Complaint</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Your complaints</h2>
+      <p class="sub">Most recent first</p>
+      {% for c in complaints %}
+      <div class="history-item {% if c.status == 'resolved' %}resolved{% endif %}">
+        <div class="hi-top">
+          <strong>{{ c.get_category_display }}</strong>
+          <span class="badge {{ c.status }}">{{ c.get_status_display }}</span>
+        </div>
+        <div class="hi-desc">{{ c.description }}</div>
+        <div class="hi-meta">
+          Reported {{ c.created_at|timesince }} ago{% if c.resolved_at %} &middot; resolved {{ c.resolved_at|timesince }} ago{% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty">Nothing yet — complaints you submit will appear here with their status.</div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
