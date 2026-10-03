@@ -102,10 +102,11 @@ def register_view(request):
     full_name = request.POST.get("reg_name", "").strip()
     matric = request.POST.get("reg_matric", "").strip()
     level = request.POST.get("reg_level", "").strip()
+    department = request.POST.get("reg_department", "").strip()
     email = request.POST.get("reg_email", "").strip()
     password = request.POST.get("reg_pw", "")
 
-    if not all([full_name, matric, level, email, password]):
+    if not all([full_name, matric, level, department, email, password]):
         messages.error(request, "Please fill in every field.")
         return render(request, "hostel/login.html", {"register_error": True})
 
@@ -139,6 +140,12 @@ def register_view(request):
         messages.error(request, "That matric number is too long.")
         return render(request, "hostel/login.html", {"register_error": True})
 
+    # department was never on the register form, so every existing profile
+    # has an empty one — required now, capped at the model's 100 chars
+    if len(department) > StudentProfile._meta.get_field("department").max_length:
+        messages.error(request, "That department name is too long.")
+        return render(request, "hostel/login.html", {"register_error": True})
+
     # Atomic: the User and its StudentProfile must live or die together, otherwise a
     # failure below leaves an active account that can log in but 404s on every page,
     # and whose matric number can never be registered again.
@@ -152,7 +159,7 @@ def register_view(request):
         StudentProfile.objects.create(
             user=user,
             matric_number=matric,
-            department="",
+            department=department,
             level=level,
         )
 
@@ -289,6 +296,7 @@ def detail(request, room_number):
     room.bed_dots = ["vacant"] * room.vacant_beds + ["taken"] * room.occupied_beds
 
     approved_booking = None
+    pending_booking = None
     if request.user.is_authenticated:
         approved_booking = (
             Booking.objects
@@ -297,10 +305,21 @@ def detail(request, room_number):
             .order_by("-decided_at")
             .first()
         )
+        # a pending application anywhere also blocks applying — surfaced in
+        # the template so the Apply button explains itself instead of
+        # letting the student fill the form only to be bounced on submit
+        pending_booking = (
+            Booking.objects
+            .filter(student=request.user, status="pending")
+            .select_related("room", "room__hostel")
+            .order_by("-applied_at")
+            .first()
+        )
 
     return render(request, "hostel/details.html", {
         "room": room,
         "approved_booking": approved_booking,
+        "pending_booking": pending_booking,
     })
 
 @never_cache
@@ -331,6 +350,18 @@ def dashboard(request):
 def booking(request, room_number):
     room = get_object_or_404(Room.objects.select_related("hostel"), room_number=room_number)
     student = get_object_or_404(StudentProfile, user=request.user)
+
+    # One live application at a time — enforced for GET too, not just POST:
+    # previously the student could open and fill the whole apply form and only
+    # find out on submit (and the rejection message was never displayed).
+    if Booking.objects.filter(
+        student=request.user, status__in=["pending", "approved"]
+    ).exists():
+        messages.error(
+            request,
+            "You already have an active application — you'll see its status on your dashboard.",
+        )
+        return redirect("dashboard")
 
     if request.method == "POST":
         if room.is_full:

@@ -175,7 +175,10 @@
     <a href="{% url 'dashboard' %}">Dashboard</a>
     <a href="{% url 'listing' %}">Hostels</a>
   </div>
-  <span class="avatar">{{ request.user.username|slice:":2"|upper }}</span>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <a href="{% url 'logout' %}" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Log Out</a>
+    <span class="avatar">{{ request.user.username|slice:":2"|upper }}</span>
+  </div>
 </nav>
 
 <div class="crumb"><a href="{% url 'dashboard' %}">Dashboard</a> / <a href="{% url 'detail' room.room_number %}">Room {{ room.room_number }}</a> / Apply</div>

@@ -219,6 +219,7 @@
     <a href="{% url 'listing' %}">Hostels</a>
   </div>
   <div class="nav-right">
+    <a href="{% url 'logout' %}" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Log Out</a>
     <span class="avatar">{{ initials }}</span>
   </div>
 </nav>
@@ -230,6 +231,18 @@
   </div>
   <a href="{% url 'listing' %}" class="browse-link">Browse Rooms</a>
 </div>
+
+{% if messages %}
+<!-- feedback the student could never see before (e.g. being blocked from
+     applying twice) — the dashboard never rendered messages at all -->
+<div style="display:flex; flex-direction:column; gap:.5rem; margin-bottom:1.25rem;">
+  {% for message in messages %}
+  <div style="padding:.8rem 1rem; border-radius:10px; background:var(--navy-panel); border-left:4px solid {% if message.tags == 'error' %}#e5484d{% else %}#46a758{% endif %}; color:var(--off-white); font-size:0.9rem;">
+    {{ message }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 <div class="dash-grid">
 
@@ -309,7 +322,7 @@
       </div>
 
       <div class="info-list">
-        <div class="info-row"><span>Department</span><span>{{ student.department }}</span></div>
+        <div class="info-row"><span>Department</span><span>{% if student.department %}{{ student.department }}{% else %}<span style="color:var(--slate-dim)">Not set</span>{% endif %}</span></div>
         <div class="info-row"><span>Level</span><span>{{ student.level }}</span></div>
         <div class="info-row"><span>Email</span><span>{{ request.user.email }}</span></div>
         <div class="info-row"><span>Phone</span><span>{{ student.phone|default:"—" }}</span></div>
@@ -325,7 +338,6 @@
         <a href="{% url 'listing' %}" class="quick-link"><span>Browse available rooms</span><span class="arrow">→</span></a>
         <a href="#" class="quick-link"><span>Report a complaint</span><span class="arrow">→</span></a>
         <a href="#" class="quick-link"><span>Payment history</span><span class="arrow">→</span></a>
-        <a href="{% url 'logout' %}" class="quick-link"><span>Log out</span><span class="arrow">→</span></a>
       </div>
     </div>
 

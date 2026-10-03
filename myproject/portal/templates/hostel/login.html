@@ -398,6 +398,7 @@
         <div class="field" id="login-pw-field">
           <label for="login-pw">Password</label>
           <input type="password" id="login-pw" name="login_pw" placeholder="••••••••" required>
+          <button type="button" class="pw-toggle" data-target="login-pw" aria-label="Show password" style="margin-top:6px; background:none; border:none; padding:0; color:inherit; opacity:.7; font-size:0.75rem; cursor:pointer; font-family:inherit;">Show</button>
           <small class="err">Password must be at least 6 characters.</small>
         </div>
 
@@ -445,6 +446,12 @@
           </div>
         </div>
 
+        <div class="field" id="reg-dept-field">
+          <label for="reg-dept">Department</label>
+          <input type="text" id="reg-dept" name="reg_department" placeholder="e.g. Computer Science" required>
+          <small class="err">Please enter your department.</small>
+        </div>
+
         <div class="field" id="reg-email-field">
           <label for="reg-email">Email</label>
           <input type="email" id="reg-email" name="reg_email" placeholder="you@example.com" required>
@@ -454,6 +461,7 @@
         <div class="field" id="reg-pw-field">
           <label for="reg-pw">Password</label>
           <input type="password" id="reg-pw" name="reg_pw" placeholder="At least 6 characters" required>
+          <button type="button" class="pw-toggle" data-target="reg-pw" aria-label="Show password" style="margin-top:6px; background:none; border:none; padding:0; color:inherit; opacity:.7; font-size:0.75rem; cursor:pointer; font-family:inherit;">Show</button>
           <small class="err">Password must be at least 6 characters.</small>
         </div>
 
@@ -526,5 +534,17 @@
   {% if register_error %}switchTab('register');{% endif %}
 </script>
 
+<script>
+  // Show/Hide toggle on every password field — lets people check what they
+  // typed before submitting (both the student login and the register form)
+  document.querySelectorAll('.pw-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = document.getElementById(btn.dataset.target);
+      var revealing = input.type === 'password';
+      input.type = revealing ? 'text' : 'password';
+      btn.textContent = revealing ? 'Hide' : 'Show';
+    });
+  });
+</script>
 </body>
 </html>

@@ -327,6 +327,14 @@
       <a href="{% url 'dashboard' %}" class="apply-btn" style="display:block; text-align:center;">
         View My Allocation
       </a>
+    {% elif pending_booking %}
+      <p class="keycard-note" style="margin-top:18px; color:var(--gold-soft);">
+        You have a pending application for Room {{ pending_booking.room.room_number }}.
+      </p>
+      <a href="{% url 'dashboard' %}" class="apply-btn" style="display:block; text-align:center; opacity:0.85;">
+        Track My Application
+      </a>
+      <p class="keycard-note">You can apply for a different room once it's decided.</p>
     {% elif user.is_authenticated %}
       <a href="{% url 'booking' room.room_number %}" class="apply-btn" style="display:block; text-align:center;">
         Apply for This Room

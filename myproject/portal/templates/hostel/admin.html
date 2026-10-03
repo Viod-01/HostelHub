@@ -253,6 +253,8 @@
       <div>
         <div class="who">{{ request.user.get_full_name|default:request.user.username }}</div>
         <div class="role">Hostel Office</div>
+        <!-- the warden dashboard had no way out at all before this -->
+        <a href="{% url 'logout' %}" style="display:inline-block; margin-top:6px; color:var(--gold-soft); font-size:0.78rem; text-decoration:none;">Log out →</a>
       </div>
     </div>
   </div>

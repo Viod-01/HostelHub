@@ -148,3 +148,79 @@ class PublicPageSmokeTests(TestCase):
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200)
+
+    def test_password_fields_have_show_hide_toggles(self):
+        for url in ["/login/", "/admin-login/"]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertContains(response, "pw-toggle")
+
+
+# ------------------------------------ registration now asks for department
+
+class RegistrationDepartmentTests(TestCase):
+    def test_register_saves_department(self):
+        response = self.client.post("/register/submit/", {
+            "reg_name": "Test Student",
+            "reg_matric": "AFIT/2026/0999",
+            "reg_level": "200",
+            "reg_department": "Computer Science",
+            "reg_email": "test.student@example.com",
+            "reg_pw": "sensible-password-1",
+        })
+        self.assertRedirects(response, "/dashboard/")
+        profile = StudentProfile.objects.get(matric_number="AFIT/2026/0999")
+        self.assertEqual(profile.department, "Computer Science")
+
+
+# ------------------------- one live application, enforced in the UI as well
+
+class ActiveApplicationUxTests(TestCase):
+    def setUp(self):
+        self.hostel = make_hostel()
+        self.room = make_room(self.hostel, "T-101")
+        make_room(self.hostel, "T-102")
+        self.student = make_student()
+        self.client.login(username="student1", password="pw-12345!")
+
+    def test_pending_student_cannot_open_a_second_apply_form(self):
+        Booking.objects.create(student=self.student, room=self.room, session="2026/2027")
+        response = self.client.get("/hostels/T-102/apply/")
+        self.assertRedirects(response, "/dashboard/")
+
+    def test_room_page_shows_track_button_instead_of_apply(self):
+        Booking.objects.create(student=self.student, room=self.room, session="2026/2027")
+        response = self.client.get("/hostels/T-102/")
+        self.assertNotContains(response, "Apply for This Room")
+        self.assertContains(response, "Track My Application")
+
+    def test_the_rejection_message_actually_renders(self):
+        # the guard's message was set but silently dropped before the
+        # dashboard learned to display messages
+        Booking.objects.create(student=self.student, room=self.room, session="2026/2027")
+        response = self.client.get("/hostels/T-102/apply/", follow=True)
+        self.assertContains(response, "already have an active application")
+
+
+# --------------------------------------------- logout reachable everywhere
+
+class LogoutPlacementTests(TestCase):
+    """Log Out used to be buried in the dashboard's quick links, absent from
+    the booking page, and missing entirely from the warden dashboard."""
+
+    def test_student_pages_have_top_right_logout(self):
+        hostel = make_hostel()
+        make_room(hostel, "T-101")
+        make_student()
+        self.client.login(username="student1", password="pw-12345!")
+        for url in ["/dashboard/", "/hostels/T-101/", "/hostels/T-101/apply/"]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Log Out")
+
+    def test_warden_dashboard_has_logout(self):
+        User.objects.create_user("warden2", password="pw", is_staff=True)
+        self.client.login(username="warden2", password="pw")
+        response = self.client.get("/dashboard/admin/")
+        self.assertContains(response, "Log out")

@@ -430,6 +430,7 @@
         <div class="field" id="admin-pw-field">
           <label for="admin-pw">Password</label>
           <input type="password" id="admin-pw" name="admin_pw" placeholder="••••••••" required>
+          <button type="button" class="pw-toggle" data-target="admin-pw" aria-label="Show password" style="margin-top:6px; background:none; border:none; padding:0; color:inherit; opacity:.7; font-size:0.75rem; cursor:pointer; font-family:inherit;">Show</button>
           <small class="err">Password must be at least 6 characters.</small>
         </div>
 
@@ -496,6 +497,7 @@
         <div class="field" id="reg-pw-field">
           <label for="reg-pw">Password</label>
           <input type="password" id="reg-pw" name="password" placeholder="At least 6 characters" required>
+          <button type="button" class="pw-toggle" data-target="reg-pw" aria-label="Show password" style="margin-top:6px; background:none; border:none; padding:0; color:inherit; opacity:.7; font-size:0.75rem; cursor:pointer; font-family:inherit;">Show</button>
           <small class="err">Password must be at least 6 characters.</small>
         </div>
 
@@ -570,5 +572,17 @@
   }
 </script>
 
+<script>
+  // Show/Hide toggle on every password field — lets staff check what they
+  // typed before submitting (login + request-access forms)
+  document.querySelectorAll('.pw-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = document.getElementById(btn.dataset.target);
+      var revealing = input.type === 'password';
+      input.type = revealing ? 'text' : 'password';
+      btn.textContent = revealing ? 'Hide' : 'Show';
+    });
+  });
+</script>
 </body>
 </html>

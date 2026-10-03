@@ -70,8 +70,13 @@
   .filter-bar {
     display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
     padding: 0 clamp(24px, 6vw, 72px) 32px;
-    position: sticky; top: 73px; z-index: 40;
     background: var(--navy-deep);
+  }
+  /* Pinned filters are useful on a laptop, but on phones the two stacked
+     sticky bars (nav + filters) eat a third of the screen and overlap the
+     cards while scrolling — so the filter bar only sticks on wide screens. */
+  @media (min-width: 900px) {
+    .filter-bar { position: sticky; top: 73px; z-index: 40; }
   }
   .filter-bar select {
     background: var(--navy-panel);
