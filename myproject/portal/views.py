@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.models import User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.utils import timezone
 from .models import (
     Hostel, Room, StudentProfile, Booking, StaffAccessRequest, Complaint,
@@ -272,18 +273,61 @@ def request_access(request):
 
 
 def listing(request):
-    # Only rooms with at least one free bed — mirrors the r.vacant > 0
-    # filter your frontend JS already does, but now enforced at the DB level.
+    """Server-side filtering + pagination. This page used to ship all ~1,020
+    room cards and filter/slice them in the browser (with a 5-per-block
+    preview hack) — fine on a laptop, a crawl on a phone. The database now
+    does the filtering and Django's Paginator serves 24 rooms per page."""
     rooms = (
         Room.objects
         .select_related("hostel")
         .filter(occupied_beds__lt=F("hostel__capacity_per_room"))
     )
-    for room in rooms:
+
+    # block + type filters arrive as GET params; values are validated, so a
+    # hand-edited URL can't inject an arbitrary query
+    block = request.GET.get("block", "")
+    room_type = request.GET.get("type", "")
+    if block.isdigit():
+        rooms = rooms.filter(hostel_id=int(block))
+    if room_type in dict(Hostel.ROOM_TYPE_CHOICES):
+        rooms = rooms.filter(hostel__room_type=room_type)
+
+    sort = request.GET.get("sort", "")
+    if sort == "price-asc":
+        rooms = rooms.order_by("hostel__price_per_session", "room_number")
+    elif sort == "price-desc":
+        rooms = rooms.order_by("-hostel__price_per_session", "room_number")
+    elif sort == "vacant-desc":
+        rooms = rooms.order_by(
+            (F("hostel__capacity_per_room") - F("occupied_beds")).desc(),
+            "room_number",
+        )
+    else:
+        rooms = rooms.order_by("hostel__name", "room_number")
+
+    paginator = Paginator(rooms, 24)          # 24 = 3 cols x 8 on desktop
+    page = paginator.get_page(request.GET.get("page"))
+    for room in page.object_list:
         room.bed_dots = ["vacant"] * room.vacant_beds + ["taken"] * room.occupied_beds
 
-    hostels = Hostel.objects.all()  # populates the block filter dropdown
-    return render(request, "hostel/listing.html", {"rooms": rooms, "hostels": hostels})
+    # carry the active filters over onto every page link
+    params = request.GET.copy()
+    params.pop("page", None)
+    base_query = params.urlencode()
+    page_query = base_query + "&" if base_query else ""
+
+    hostels = Hostel.objects.all().order_by("name")
+    return render(request, "hostel/listing.html", {
+        "page": page,
+        "hostels": hostels,
+        "room_type_choices": Hostel.ROOM_TYPE_CHOICES,
+        "base_query": base_query,
+        "page_query": page_query,
+        "page_range": page.paginator.get_elided_page_range(page.number),
+        "active_block": block,
+        "active_type": room_type,
+        "active_sort": sort,
+    })
 
 
 # def detail(request, room_number):

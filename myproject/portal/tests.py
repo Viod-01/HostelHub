@@ -260,6 +260,57 @@ class BlockSupervisorDisplayTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+# --------------------------------------------- listing: filter + paging
+
+class ListingPaginationTests(TestCase):
+    """The listing used to ship all ~1,020 cards and filter them in the
+    browser; it now filters in the database and serves 24 per page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.hostel = Hostel.objects.create(
+            name="Test Block", room_type="shared", capacity_per_room=4,
+            price_per_session=60000,
+        )
+        # 30 rooms so a second page must exist
+        for i in range(1, 31):
+            Room.objects.create(hostel=cls.hostel, room_number=f"T-{100+i}")
+        cls.single_block = Hostel.objects.create(
+            name="Single Block", room_type="single", capacity_per_room=1,
+            price_per_session=75000,
+        )
+        Room.objects.create(hostel=cls.single_block, room_number="S-101")
+
+    def test_first_page_has_at_most_24_cards_and_a_next_link(self):
+        response = self.client.get("/hostels/")
+        self.assertContains(response, 'class="tag-card"', count=24)
+        self.assertContains(response, "Next")
+
+    def test_second_page_shows_the_rest(self):
+        response = self.client.get("/hostels/?page=2")
+        self.assertContains(response, 'class="tag-card"', count=7)  # 31-24
+
+    def test_block_filter_stays_across_pages(self):
+        response = self.client.get(f"/hostels/?block={self.single_block.pk}")
+        self.assertContains(response, 'class="tag-card"', count=1)
+        self.assertContains(response, "Single Block")
+
+    def test_type_filter_matches_the_model_choices(self):
+        response = self.client.get("/hostels/?type=single")
+        self.assertContains(response, 'class="tag-card"', count=1)
+        self.assertContains(response, "S-101")
+
+    def test_sorts_do_not_crash(self):
+        for sort in ["price-asc", "price-desc", "vacant-desc", "featured"]:
+            with self.subTest(sort=sort):
+                response = self.client.get(f"/hostels/?sort={sort}")
+                self.assertEqual(response.status_code, 200)
+
+    def test_out_of_range_page_clamps_instead_of_404(self):
+        response = self.client.get("/hostels/?page=999")
+        self.assertEqual(response.status_code, 200)
+
+
 # -------------------------------------------------------- public pages
 
 class PublicPageSmokeTests(TestCase):

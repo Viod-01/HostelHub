@@ -205,6 +205,19 @@
     grid-column: 1 / -1;
   }
   .no-results.show { display: block; }
+
+  /* ---------- PAGINATION ---------- */
+  .pagination {
+    display: flex; gap: 8px; align-items: center; justify-content: center;
+    flex-wrap: wrap; padding: 28px clamp(24px, 6vw, 72px) 48px;
+  }
+  .pagination a, .pagination .current, .pagination .pg-ellipsis {
+    padding: 8px 14px; border-radius: 9px; font-size: 0.85rem;
+    text-decoration: none; border: 1px solid rgba(147,160,188,0.22); color: var(--slate);
+  }
+  .pagination a:hover { border-color: var(--gold); color: var(--gold-soft); }
+  .pagination .current { background: var(--gold); color: var(--navy-deep); font-weight: 700; border-color: var(--gold); }
+  .pagination .pg-ellipsis { border: none; color: var(--slate-dim); }
  
   footer {
     padding: 40px clamp(24px, 6vw, 72px);
@@ -243,35 +256,34 @@
 </div>
  
 <div class="filter-bar">
-  <select id="filter-block">
-    <option value="all">All blocks</option>
-    {% for hostel in hostels %}
-      <option value="{{ hostel.name }}">{{ hostel.name }}</option>
-    {% endfor %}
-  </select>
-  <select id="filter-type">
-    <option value="all">All room types</option>
-    <option value="Single">Single</option>
-    <option value="Shared">Shared</option>
-    <option value="Self-Contain">Self-Contain</option>
-    <option value="2-Bedroom Apartment">2-Bedroom Apartment</option>
-  </select>
-  <select id="filter-sort">
-    <option value="default">Sort: Featured</option>
-    <option value="price-asc">Price: Low to High</option>
-    <option value="price-desc">Price: High to Low</option>
-    <option value="vacant-desc">Most Vacant Beds</option>
-  </select>
-  <span class="filter-count"><strong id="visible-count">0</strong> rooms shown</span>
+  <form method="get" style="display:contents;">
+    <select name="block" onchange="this.form.submit()">
+      <option value="">All blocks</option>
+      {% for hostel in hostels %}
+      <option value="{{ hostel.pk }}" {% if active_block == hostel.pk|stringformat:"s" %}selected{% endif %}>{{ hostel.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="type" onchange="this.form.submit()">
+      <option value="">All room types</option>
+      {% for value, label in room_type_choices %}
+      <option value="{{ value }}" {% if active_type == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="sort" onchange="this.form.submit()">
+      <option value="">Sort: Featured</option>
+      <option value="price-asc" {% if active_sort == "price-asc" %}selected{% endif %}>Price: Low to High</option>
+      <option value="price-desc" {% if active_sort == "price-desc" %}selected{% endif %}>Price: High to Low</option>
+      <option value="vacant-desc" {% if active_sort == "vacant-desc" %}selected{% endif %}>Most Vacant Beds</option>
+    </select>
+    <noscript><button type="submit" style="background:var(--gold); border:none; color:var(--navy-deep); font-weight:600; padding:9px 16px; border-radius:9px; cursor:pointer;">Apply</button></noscript>
+    {% if base_query %}<a href="{% url 'listing' %}" style="font-size:0.8rem; color:var(--gold-soft);">Clear filters</a>{% endif %}
+  </form>
+  <span class="filter-count"><strong>{{ page.paginator.count }}</strong> room{{ page.paginator.count|pluralize }} &middot; page {{ page.number }} of {{ page.paginator.num_pages }}</span>
 </div>
  
 <div class="room-grid" id="room-grid">
-  {% for room in rooms %}
-  <div class="tag-card"
-       data-block="{{ room.hostel.name }}"
-       data-type="{{ room.hostel.get_room_type_display }}"
-       data-price="{{ room.hostel.price_per_session }}"
-       data-vacant="{{ room.vacant_beds }}">
+  {% for room in page %}
+  <div class="tag-card">
     <div class="tag-loop"></div>
     <div class="tag-body">
       <div class="tag-photo">
@@ -295,64 +307,37 @@
     </div>
   </div>
   {% endfor %}
-  <div class="no-results" id="no-results">No rooms match those filters — try widening your search.</div>
+  {% if not page.object_list %}
+  <div class="no-results show" id="no-results">No rooms match those filters — try widening your search.</div>
+  {% endif %}
 </div>
- 
+
+{% if page.has_other_pages %}
+<div class="pagination">
+  {% if page.has_previous %}
+  <a href="?{{ page_query }}page={{ page.previous_page_number }}">&larr; Prev</a>
+  {% endif %}
+  {% for p in page_range %}
+    {% if p == "…" %}
+    <span class="pg-ellipsis">…</span>
+    {% elif p == page.number %}
+    <span class="current">{{ p }}</span>
+    {% else %}
+    <a href="?{{ page_query }}page={{ p }}">{{ p }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if page.has_next %}
+  <a href="?{{ page_query }}page={{ page.next_page_number }}">Next &rarr;</a>
+  {% endif %}
+</div>
+{% endif %}
+
 <footer>
   <span>© 2026 HostelHub — Student Accommodation Portal</span>
   <span>Built with Django</span>
 </footer>
  
-<script>
-  // Filters/sorts the server-rendered cards already in the DOM —
-  // data comes from Django via data-* attributes, not a JS array.
-  const grid = document.getElementById('room-grid');
-  const noResults = document.getElementById('no-results');
-  const countEl = document.getElementById('visible-count');
-  const blockSel = document.getElementById('filter-block');
-  const typeSel = document.getElementById('filter-type');
-  const sortSel = document.getElementById('filter-sort');
-  const allCards = Array.from(document.querySelectorAll('.tag-card'));
 
-  function apply() {
-    const blockVal = blockSel.value;
-    const typeVal = typeSel.value;
-    const sortVal = sortSel.value;
-
-    let visible = allCards.filter(card => {
-      const matchesBlock = blockVal === 'all' || card.dataset.block === blockVal;
-      const matchesType = typeVal === 'all' || card.dataset.type === typeVal;
-      return matchesBlock && matchesType;
-    });
-
-    if (sortVal === 'price-asc') visible.sort((a, b) => a.dataset.price - b.dataset.price);
-    if (sortVal === 'price-desc') visible.sort((a, b) => b.dataset.price - a.dataset.price);
-    if (sortVal === 'vacant-desc') visible.sort((a, b) => b.dataset.vacant - a.dataset.vacant);
-
-    // On the base page (no block chosen), only show a 5-room preview
-    // per block — picking a specific block reveals its full room list.
-    if (blockVal === 'all') {
-      const seenPerBlock = {};
-      visible = visible.filter(card => {
-        const b = card.dataset.block;
-        seenPerBlock[b] = (seenPerBlock[b] || 0) + 1;
-        return seenPerBlock[b] <= 5;
-      });
-    }
-
-    allCards.forEach(card => card.style.display = 'none');
-    visible.forEach(card => {
-      card.style.display = '';
-      grid.insertBefore(card, noResults);
-    });
-
-    countEl.textContent = visible.length;
-    noResults.classList.toggle('show', visible.length === 0);
-  }
-
-  [blockSel, typeSel, sortSel].forEach(el => el.addEventListener('change', apply));
-  apply();
-</script>
 
 </body>
 </html>
