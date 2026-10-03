@@ -307,6 +307,41 @@
       </div>
     </div>
 
+    <div class="card" id="report-problem">
+      <h2>Report a Problem</h2>
+      <p class="sub">Something broken in your room or block? Tell the hostel office.</p>
+
+      <form method="post" action="{% url 'complaint_submit' %}" style="display:flex; flex-direction:column; gap:10px; margin-top:14px;">
+        {% csrf_token %}
+        <select name="category" required style="background:var(--navy-panel); border:1px solid rgba(147,160,188,0.22); color:var(--off-white); font-family:inherit; font-size:0.88rem; padding:11px 12px; border-radius:9px;">
+          <option value="">What's the problem?</option>
+          {% for value, label in complaint_categories %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <textarea name="description" rows="3" maxlength="2000" required placeholder="Describe the issue — e.g. 'The tap in Room B-204's bathroom has been leaking since Monday.'" style="background:var(--navy-panel); border:1px solid rgba(147,160,188,0.22); color:var(--off-white); font-family:inherit; font-size:0.88rem; padding:11px 12px; border-radius:9px; resize:vertical;"></textarea>
+        <button type="submit" class="btn-gold" style="align-self:flex-start;">Submit Complaint</button>
+      </form>
+
+      {% if my_complaints %}
+      <h2 style="margin-top:22px;">Your Complaints</h2>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+        {% for c in my_complaints %}
+        <div style="padding:12px 14px; border-radius:10px; background:var(--navy-panel); border-left:3px solid {% if c.status == 'open' %}#F5A524{% else %}#7FBF8F{% endif %};">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:4px;">
+            <strong style="font-size:0.84rem;">{{ c.get_category_display }}</strong>
+            <span style="font-size:0.7rem; padding:3px 9px; border-radius:20px; font-weight:600; background:{% if c.status == 'open' %}rgba(245,165,36,0.14); color:#F5A524{% else %}rgba(127,191,143,0.14); color:#7FBF8F{% endif %};">{{ c.get_status_display }}</span>
+          </div>
+          <div style="font-size:0.84rem; color:var(--slate);">{{ c.description }}</div>
+          <div style="font-size:0.72rem; color:var(--slate-dim); margin-top:6px;">
+            Reported {{ c.created_at|timesince }} ago{% if c.resolved_at %} &middot; resolved {{ c.resolved_at|timesince }} ago{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
   </div>
 
   <!-- RIGHT: profile + quick links -->
@@ -336,7 +371,7 @@
       <p class="sub">Things you'll probably need</p>
       <div class="quick-links">
         <a href="{% url 'listing' %}" class="quick-link"><span>Browse available rooms</span><span class="arrow">→</span></a>
-        <a href="#" class="quick-link"><span>Report a complaint</span><span class="arrow">→</span></a>
+        <a href="#report-problem" class="quick-link"><span>Report a complaint</span><span class="arrow">→</span></a>
         <a href="#" class="quick-link"><span>Payment history</span><span class="arrow">→</span></a>
       </div>
     </div>

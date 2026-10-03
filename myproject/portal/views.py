@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.utils import timezone
-from .models import Hostel, Room, StudentProfile, Booking, StaffAccessRequest
+from .models import Hostel, Room, StudentProfile, Booking, StaffAccessRequest, Complaint
 
 # mirrors the <select> options on the register form
 LEVEL_CHOICES = {100, 200, 300, 400, 500}
@@ -342,6 +342,11 @@ def dashboard(request):
         "booking": booking,
         "full_name": full_name,
         "initials": initials,
+        "my_complaints": Complaint.objects
+        .filter(student=request.user)
+        .select_related("student")
+        .order_by("-created_at")[:5],
+        "complaint_categories": Complaint.CATEGORY_CHOICES,
     }
     return render(request, "hostel/dashboard.html", context)
 
@@ -460,6 +465,13 @@ def admin_dashboard(request):
     )
     pending_staff_requests = staff_requests.filter(status="pending")
 
+    # complaints: open ones first (sorts before "resolved"), newest first
+    complaints = (
+        Complaint.objects.select_related("student").order_by("status", "-created_at")
+    )
+    open_complaint_count = complaints.filter(status="open").count()
+
+
     context = {
         "rooms": rooms,
         "hostels": hostels,
@@ -467,6 +479,8 @@ def admin_dashboard(request):
         "bookings": bookings,
         "pending_bookings": bookings.filter(status="pending"),
         "pending_count": bookings.filter(status="pending").count(),
+        "complaints": complaints,
+        "open_complaint_count": open_complaint_count,
         "staff_requests": staff_requests,
         "pending_staff_requests": pending_staff_requests,
         "pending_staff_count": pending_staff_requests.count(),
@@ -543,4 +557,58 @@ def booking_decision(request, booking_id, decision):
             booking_obj.decided_at = timezone.now()
             booking_obj.save(update_fields=["status", "decided_at"])
 
+    return redirect("admin_dashboard")
+
+COMPLAINT_CATEGORIES = {value for value, _ in Complaint.CATEGORY_CHOICES}
+
+
+@login_required
+def complaint_submit(request):
+    """Students report a problem from their dashboard (Simple scope:
+    category + description, warden marks it resolved)."""
+    if request.method != "POST":
+        return redirect("dashboard")
+
+    category = request.POST.get("category", "").strip()
+    description = request.POST.get("description", "").strip()
+
+    # the <select> limits choices in the browser, but a crafted POST doesn't
+    # have to use it — validate against the model's own category list
+    if category not in COMPLAINT_CATEGORIES:
+        messages.error(request, "Pick a valid problem category.")
+        return redirect("dashboard")
+    if not description or len(description) > 2000:
+        messages.error(request, "Describe the problem (up to 2,000 characters).")
+        return redirect("dashboard")
+
+    Complaint.objects.create(
+        student=request.user, category=category, description=description
+    )
+    messages.success(
+        request, "Complaint submitted — the hostel office will see it right away."
+    )
+    return redirect("dashboard")
+
+
+@never_cache
+@staff_member_required(login_url="admin_login")
+def complaint_resolve(request, complaint_id):
+    if request.method != "POST":
+        return redirect("admin_dashboard")
+
+    complaint = get_object_or_404(Complaint, pk=complaint_id)
+
+    if complaint.status == "resolved":
+        messages.warning(
+            request, "That complaint was already resolved — no changes made."
+        )
+        return redirect("admin_dashboard")
+
+    complaint.status = "resolved"
+    complaint.resolved_at = timezone.now()
+    complaint.save(update_fields=["status", "resolved_at"])
+    messages.success(
+        request,
+        f"Marked the {complaint.get_category_display().lower()} complaint as resolved.",
+    )
     return redirect("admin_dashboard")

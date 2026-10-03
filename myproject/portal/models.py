@@ -90,6 +90,34 @@ class Booking(models.Model):
         ]
 
 
+class Complaint(models.Model):
+    """A maintenance or service issue reported by a student, e.g. a burst
+    pipe. Students file these from their dashboard; the hostel office
+    resolves them from the warden dashboard."""
+    CATEGORY_CHOICES = [
+        ("plumbing", "Plumbing"),
+        ("electrical", "Electrical"),
+        ("water", "Water Supply"),
+        ("security", "Security"),
+        ("maintenance", "General Maintenance"),
+        ("other", "Other"),
+    ]
+    STATUS_CHOICES = [
+        ("open", "Open"),
+        ("resolved", "Resolved"),
+    ]
+
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="complaints")
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    description = models.TextField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="open")
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.get_category_display()} — {self.student.username} ({self.status})"
+
+
 class StaffAccessRequest(models.Model):
     """A request for admin/staff access, submitted from the admin login
     page's 'Request Access' tab. The linked User is created immediately

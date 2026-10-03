@@ -30,4 +30,8 @@ urlpatterns = [
     path("dashboard/admin/", views.admin_dashboard, name="admin_dashboard"),
     path("dashboard/admin/bookings/<int:booking_id>/<str:decision>/", views.booking_decision, name="booking_decision"),
     path("dashboard/admin/staff-requests/<int:request_id>/<str:decision>/", views.staff_request_decision, name="staff_request_decision"),
+
+    # Complaints
+    path("dashboard/complaints/submit/", views.complaint_submit, name="complaint_submit"),
+    path("dashboard/admin/complaints/<int:complaint_id>/resolve/", views.complaint_resolve, name="complaint_resolve"),
 ]

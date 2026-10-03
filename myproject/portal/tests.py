@@ -13,8 +13,9 @@ from django.contrib.auth.models import User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.db import IntegrityError
 from django.test import RequestFactory, TestCase
+from django.utils import timezone
 
-from .models import Hostel, Room, StudentProfile, Booking
+from .models import Hostel, Room, StudentProfile, Booking, Complaint
 from .views import booking_decision
 
 
@@ -136,6 +137,83 @@ class OneActiveBookingRuleTests(TestCase):
         response = decide(booking.pk, "delete", staff)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Booking.objects.get(pk=booking.pk).status, "pending")
+
+
+# ----------------------------------------------------------- complaints
+
+class ComplaintTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user("warden", password="pw", is_staff=True)
+        self.student = make_student()
+        self.client.login(username="student1", password="pw-12345!")
+
+    def test_student_submits_and_sees_their_complaint(self):
+        response = self.client.post("/dashboard/complaints/submit/", {
+            "category": "plumbing",
+            "description": "The tap in the corner bathroom is dripping.",
+        }, follow=True)
+        self.assertContains(response, "Complaint submitted")
+        self.assertContains(response, "The tap in the corner bathroom is dripping.")
+        complaint = Complaint.objects.get(student=self.student)
+        self.assertEqual(complaint.status, "open")
+        self.assertIsNone(complaint.resolved_at)
+
+    def test_crafted_category_is_refused(self):
+        # the <select> is advisory; a hand-built POST can send anything
+        self.client.post("/dashboard/complaints/submit/", {
+            "category": "free_wifi", "description": "please",
+        })
+        self.assertEqual(Complaint.objects.count(), 0)
+
+    def test_empty_description_is_refused(self):
+        self.client.post("/dashboard/complaints/submit/", {"category": "water"})
+        self.assertEqual(Complaint.objects.count(), 0)
+
+    def test_warden_resolves_and_it_shows_on_their_dashboard(self):
+        complaint = Complaint.objects.create(
+            student=self.student, category="water", description="No water on floor 2"
+        )
+        self.client.logout()
+        self.client.login(username="warden", password="pw")
+        response = self.client.post(
+            f"/dashboard/admin/complaints/{complaint.pk}/resolve/", follow=True
+        )
+        self.assertContains(response, "No water on floor 2")      # on the warden list
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.status, "resolved")
+        self.assertIsNotNone(complaint.resolved_at)
+
+    def test_student_sees_the_resolved_status(self):
+        complaint = Complaint.objects.create(
+            student=self.student, category="security", description="Broken window lock"
+        )
+        complaint.status = "resolved"
+        complaint.resolved_at = timezone.now()
+        complaint.save()
+        response = self.client.get("/dashboard/")
+        self.assertContains(response, "Broken window lock")
+        self.assertContains(response, "Resolved")
+
+    def test_students_cannot_resolve_complaints(self):
+        complaint = Complaint.objects.create(
+            student=self.student, category="other", description="x"
+        )
+        response = self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/resolve/")
+        self.assertEqual(response.status_code, 302)   # bounced to admin login
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.status, "open")
+
+    def test_double_resolve_is_a_noop(self):
+        complaint = Complaint.objects.create(
+            student=self.student, category="other", description="x"
+        )
+        self.client.logout()
+        self.client.login(username="warden", password="pw")
+        self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/resolve/")
+        first_at = Complaint.objects.get(pk=complaint.pk).resolved_at
+        self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/resolve/")
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.resolved_at, first_at)
 
 
 # -------------------------------------------------------- public pages
