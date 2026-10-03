@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Hostel, Room, StudentProfile, Booking, StaffAccessRequest
+from .models import (
+    Hostel, Room, StudentProfile, Booking, StaffAccessRequest,
+    Complaint, BlockSupervisor, BlockAssistant,
+)
 
 
 @admin.register(Hostel)
@@ -28,3 +31,19 @@ class BookingAdmin(admin.ModelAdmin):
 class StaffAccessRequestAdmin(admin.ModelAdmin):
     list_display = ("user", "staff_id", "department", "status", "requested_at")
     list_filter = ("status", "department")
+
+@admin.register(Complaint)
+class ComplaintAdmin(admin.ModelAdmin):
+    list_display = ("student", "category", "status", "created_at", "resolved_at")
+    list_filter = ("status", "category")
+
+
+class BlockAssistantInline(admin.TabularInline):
+    model = BlockAssistant
+    extra = 1
+
+
+@admin.register(BlockSupervisor)
+class BlockSupervisorAdmin(admin.ModelAdmin):
+    list_display = ("name", "hostel", "phone", "email", "office_hours")
+    inlines = (BlockAssistantInline,)

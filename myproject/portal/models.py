@@ -139,3 +139,38 @@ class StaffAccessRequest(models.Model):
 
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} ({self.status})"
+
+class BlockSupervisor(models.Model):
+    """The member of staff responsible for one hostel block. Shown to
+    students on that block's room pages, and managed by wardens through
+    the Django admin (/admin/) rather than a custom form."""
+    hostel = models.OneToOneField(
+        Hostel, on_delete=models.CASCADE, related_name="supervisor"
+    )
+    name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=30)
+    email = models.EmailField(blank=True)
+    office_hours = models.CharField(max_length=100, blank=True)
+
+    @property
+    def initials(self):
+        # "Mrs. Margaret Okoye" -> "MO"; titles (Mr./Mrs./Dr.) are skipped
+        parts = [p.strip(". ") for p in self.name.split() if p.strip(". ")]
+        if len(parts) >= 2:
+            return (parts[-2][0] + parts[-1][0]).upper()
+        return self.name[:2].upper()
+
+    def __str__(self):
+        return f"{self.name} ({self.hostel.name})"
+
+
+class BlockAssistant(models.Model):
+    """An assistant to a block supervisor, shown alongside them."""
+    supervisor = models.ForeignKey(
+        BlockSupervisor, on_delete=models.CASCADE, related_name="assistants"
+    )
+    name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=30)
+
+    def __str__(self):
+        return f"{self.name} (assistant, {self.supervisor.hostel.name})"

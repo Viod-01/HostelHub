@@ -1,4 +1,4 @@
-from django.db.models import Count, F, IntegerField, Sum
+from django.db.models import Count, F, IntegerField, Prefetch, Sum
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Value
 import re
@@ -10,7 +10,10 @@ from django.contrib.auth.models import User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.utils import timezone
-from .models import Hostel, Room, StudentProfile, Booking, StaffAccessRequest, Complaint
+from .models import (
+    Hostel, Room, StudentProfile, Booking, StaffAccessRequest, Complaint,
+    BlockSupervisor,
+)
 
 # mirrors the <select> options on the register form
 LEVEL_CHOICES = {100, 200, 300, 400, 500}
@@ -316,10 +319,19 @@ def detail(request, room_number):
             .first()
         )
 
+    # block contacts shown next to the room — a missing supervisor renders
+    # as no card (reverse OneToOne raises AttributeError subclass, so the
+    # template's {% if %} treats it as absent)
+    try:
+        block_supervisor = room.hostel.supervisor
+    except BlockSupervisor.DoesNotExist:
+        block_supervisor = None
+
     return render(request, "hostel/details.html", {
         "room": room,
         "approved_booking": approved_booking,
         "pending_booking": pending_booking,
+        "block_supervisor": block_supervisor,
     })
 
 @never_cache
@@ -410,13 +422,29 @@ def booking(request, room_number):
             return redirect("dashboard")
         return redirect("dashboard")
 
-    return render(request, "hostel/booking.html", {"room": room, "student": student})
+    try:
+        block_supervisor = room.hostel.supervisor
+    except BlockSupervisor.DoesNotExist:
+        block_supervisor = None
+
+    return render(request, "hostel/booking.html", {
+        "room": room,
+        "student": student,
+        "block_supervisor": block_supervisor,
+    })
 
 @never_cache
 @staff_member_required(login_url='admin_login')
 def admin_dashboard(request):
     rooms = Room.objects.select_related("hostel").all()
-    hostels = Hostel.objects.all().order_by("name")
+    hostels = (
+        Hostel.objects
+        .prefetch_related(Prefetch(
+            "supervisor",
+            queryset=BlockSupervisor.objects.prefetch_related("assistants"),
+        ))
+        .order_by("name")
+    )
     hostel_stats = {
         row["hostel__name"]: row
         for row in Room.objects.values("hostel__name").annotate(
@@ -481,6 +509,7 @@ def admin_dashboard(request):
         "pending_count": bookings.filter(status="pending").count(),
         "complaints": complaints,
         "open_complaint_count": open_complaint_count,
+        "supervisors_exist": BlockSupervisor.objects.exists(),
         "staff_requests": staff_requests,
         "pending_staff_requests": pending_staff_requests,
         "pending_staff_count": pending_staff_requests.count(),

@@ -315,6 +315,18 @@
 
       <div class="summary-price">₦{{ room.hostel.price_per_session|floatformat:0 }}<small> / session</small></div>
     </div>
+
+    {% if block_supervisor %}
+    <div style="padding:14px 18px; border-top:1px dashed rgba(232,163,61,0.25);">
+      <div style="font-size:0.66rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold-soft); margin-bottom:8px;">Block Contacts — {{ room.hostel.name }}</div>
+      <div style="font-size:0.82rem; color:var(--off-white); font-weight:600;">{{ block_supervisor.name }} <span style="font-weight:400; color:var(--slate-dim); font-size:0.72rem;">(Supervisor)</span></div>
+      <div style="font-size:0.78rem; color:var(--slate); margin-top:2px;">{{ block_supervisor.phone }}</div>
+      {% if block_supervisor.office_hours %}<div style="font-size:0.74rem; color:var(--slate-dim); margin-top:2px;">{{ block_supervisor.office_hours }}</div>{% endif %}
+      {% for a in block_supervisor.assistants.all %}
+      <div style="font-size:0.76rem; color:var(--slate); margin-top:4px;">{{ a.name }} <span style="color:var(--slate-dim); font-size:0.7rem;">(assistant)</span> &middot; {{ a.phone }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 
 </div>

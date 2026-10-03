@@ -348,6 +348,32 @@
     {% endif %}
   </div>
 
+  {% if block_supervisor %}
+  <!-- Real block contacts (was placeholder text on the admin page only);
+       students see who runs the block before they apply -->
+  <div style="margin-top:20px; padding:18px; border-radius:14px; background:var(--navy-panel); border:1px solid rgba(232,163,61,0.15);">
+    <div style="font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold-soft); margin-bottom:12px;">Block Contacts — {{ room.hostel.name }}</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <div style="width:38px; height:38px; border-radius:50%; background:rgba(232,163,61,0.15); color:var(--gold-soft); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem;">{{ block_supervisor.initials }}</div>
+      <div>
+        <div style="font-size:0.9rem; font-weight:600;">{{ block_supervisor.name }}</div>
+        <div style="font-size:0.74rem; color:var(--slate-dim);">Block Supervisor</div>
+      </div>
+    </div>
+    <div style="font-size:0.82rem; color:var(--slate); margin-bottom:4px;">Phone: <span style="color:var(--off-white);">{{ block_supervisor.phone }}</span></div>
+    {% if block_supervisor.email %}<div style="font-size:0.82rem; color:var(--slate); margin-bottom:4px;">Email: <span style="color:var(--off-white);">{{ block_supervisor.email }}</span></div>{% endif %}
+    {% if block_supervisor.office_hours %}<div style="font-size:0.82rem; color:var(--slate); margin-bottom:4px;">Office: <span style="color:var(--off-white);">{{ block_supervisor.office_hours }}</span></div>{% endif %}
+    {% if block_supervisor.assistants.all %}
+    <div style="border-top:1px solid rgba(147,160,188,0.18); margin-top:10px; padding-top:10px;">
+      <div style="font-size:0.72rem; color:var(--slate-dim); margin-bottom:6px;">Assistants</div>
+      {% for a in block_supervisor.assistants.all %}
+      <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--slate); margin-bottom:3px;"><span>{{ a.name }}</span><span>{{ a.phone }}</span></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
 </div>
 
 <footer>

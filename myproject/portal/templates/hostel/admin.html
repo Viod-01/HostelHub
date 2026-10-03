@@ -458,226 +458,29 @@
           </div>
         </div>
         <div class="supervisor-grid">
+          {% for h in hostels %}
+          {% if h.supervisor %}
           <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">MO</div><div><div class="supervisor-name">Mrs. Margaret Okoye</div><div class="supervisor-block">Block A</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1101</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>m.okoye@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
+            <div class="supervisor-top"><div class="supervisor-avatar">{{ h.supervisor.initials }}</div><div><div class="supervisor-name">{{ h.supervisor.name }}</div><div class="supervisor-block">{{ h.name }}</div></div></div>
+            <div class="supervisor-detail"><span>Phone</span><span>{{ h.supervisor.phone }}</span></div>
+            {% if h.supervisor.email %}<div class="supervisor-detail"><span>Email</span><span>{{ h.supervisor.email }}</span></div>{% endif %}
+            {% if h.supervisor.office_hours %}<div class="supervisor-detail"><span>Office Hours</span><span>{{ h.supervisor.office_hours }}</span></div>{% endif %}
+            {% if h.supervisor.assistants.all %}
             <div class="supervisor-assistants">
               <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>John Okafor</span><span>081X XXX 2101</span></div>
-              <div class="assistant-row"><span>Mary Danjuma</span><span>081X XXX 2201</span></div>
+              {% for a in h.supervisor.assistants.all %}
+              <div class="assistant-row"><span>{{ a.name }}</span><span>{{ a.phone }}</span></div>
+              {% endfor %}
             </div>
+            {% endif %}
           </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">IB</div><div><div class="supervisor-name">Mr. Ibrahim Bello</div><div class="supervisor-block">Block B</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1102</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>i.bello@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>David Eze</span><span>081X XXX 2102</span></div>
-              <div class="assistant-row"><span>Ruth Yakubu</span><span>081X XXX 2202</span></div>
-            </div>
+          {% endif %}
+          {% endfor %}
+          {% if not supervisors_exist %}
+          <div style="grid-column:1/-1; padding:18px; border:1px dashed rgba(147,160,188,0.25); border-radius:12px; color:var(--slate-dim); font-size:0.85rem;">
+            No supervisors recorded yet — add them in the <a href="/admin/portal/blocksupervisor/" style="color:var(--gold-soft);">data admin</a>, one per block, and they'll appear here and on every room page in that block.
           </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">GE</div><div><div class="supervisor-name">Mrs. Grace Eze</div><div class="supervisor-block">Block C</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1103</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>g.eze@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Samuel Bello</span><span>081X XXX 2103</span></div>
-              <div class="assistant-row"><span>Esther Nwachukwu</span><span>081X XXX 2203</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">SA</div><div><div class="supervisor-name">Mr. Suleiman Abdullahi</div><div class="supervisor-block">Block D</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1104</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>s.abdullahi@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Daniel Sani</span><span>081X XXX 2104</span></div>
-              <div class="assistant-row"><span>Joy Ogundipe</span><span>081X XXX 2204</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">CN</div><div><div class="supervisor-name">Mrs. Chioma Nwosu</div><div class="supervisor-block">Block E</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1105</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>c.nwosu@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Michael Musa</span><span>081X XXX 2105</span></div>
-              <div class="assistant-row"><span>Faith Chukwuemeka</span><span>081X XXX 2205</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">TA</div><div><div class="supervisor-name">Mr. Tunde Adewale</div><div class="supervisor-block">Block F</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1106</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>t.adewale@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Joseph Okafor</span><span>081X XXX 2106</span></div>
-              <div class="assistant-row"><span>Grace Danjuma</span><span>081X XXX 2206</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">BU</div><div><div class="supervisor-name">Mrs. Blessing Udo</div><div class="supervisor-block">Block G</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1107</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>b.udo@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Paul Eze</span><span>081X XXX 2107</span></div>
-              <div class="assistant-row"><span>Comfort Yakubu</span><span>081X XXX 2207</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">KN</div><div><div class="supervisor-name">Mr. Kelechi Nnamdi</div><div class="supervisor-block">Block H</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1108</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>k.nnamdi@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>James Bello</span><span>081X XXX 2108</span></div>
-              <div class="assistant-row"><span>Patience Nwachukwu</span><span>081X XXX 2208</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">FY</div><div><div class="supervisor-name">Mrs. Fatima Yusuf</div><div class="supervisor-block">Block I</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1109</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>f.yusuf@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Isaac Sani</span><span>081X XXX 2109</span></div>
-              <div class="assistant-row"><span>Mercy Ogundipe</span><span>081X XXX 2209</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">EO</div><div><div class="supervisor-name">Mr. Emeka Obi</div><div class="supervisor-block">Block J</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1110</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>e.obi@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Simon Musa</span><span>081X XXX 2110</span></div>
-              <div class="assistant-row"><span>Peace Chukwuemeka</span><span>081X XXX 2210</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">AM</div><div><div class="supervisor-name">Mrs. Aisha Mohammed</div><div class="supervisor-block">Block K</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1111</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>a.mohammed@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Ahmed Okafor</span><span>081X XXX 2111</span></div>
-              <div class="assistant-row"><span>Zainab Danjuma</span><span>081X XXX 2211</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">CA</div><div><div class="supervisor-name">Mr. Chidi Anyanwu</div><div class="supervisor-block">Block L</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1112</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>c.anyanwu@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Yakubu Eze</span><span>081X XXX 2112</span></div>
-              <div class="assistant-row"><span>Amina Yakubu</span><span>081X XXX 2212</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">NC</div><div><div class="supervisor-name">Mrs. Ngozi Chukwu</div><div class="supervisor-block">Block M</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1113</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>n.chukwu@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Nnamdi Bello</span><span>081X XXX 2113</span></div>
-              <div class="assistant-row"><span>Ify Nwachukwu</span><span>081X XXX 2213</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">BL</div><div><div class="supervisor-name">Mr. Bashir Lawal</div><div class="supervisor-block">Block N</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1114</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>b.lawal@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Bala Sani</span><span>081X XXX 2114</span></div>
-              <div class="assistant-row"><span>Rahila Ogundipe</span><span>081X XXX 2214</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">FO</div><div><div class="supervisor-name">Mrs. Funmilayo Ojo</div><div class="supervisor-block">Block O</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1115</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>f.ojo@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Chuka Musa</span><span>081X XXX 2115</span></div>
-              <div class="assistant-row"><span>Nkechi Chukwuemeka</span><span>081X XXX 2215</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">VO</div><div><div class="supervisor-name">Mr. Victor Okafor</div><div class="supervisor-block">Self-Contain 1</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1116</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>v.okafor@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Segun Okafor</span><span>081X XXX 2116</span></div>
-              <div class="assistant-row"><span>Bimpe Danjuma</span><span>081X XXX 2216</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">HS</div><div><div class="supervisor-name">Mrs. Halima Sani</div><div class="supervisor-block">Self-Contain 2</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1117</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>h.sani@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Femi Eze</span><span>081X XXX 2117</span></div>
-              <div class="assistant-row"><span>Yemisi Yakubu</span><span>081X XXX 2217</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">PE</div><div><div class="supervisor-name">Mr. Peter Effiong</div><div class="supervisor-block">Self-Contain 3</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1118</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>p.effiong@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Wale Bello</span><span>081X XXX 2118</span></div>
-              <div class="assistant-row"><span>Ronke Nwachukwu</span><span>081X XXX 2218</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">AI</div><div><div class="supervisor-name">Mrs. Adaeze Ike</div><div class="supervisor-block">2-Bedroom Apartment 1</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1119</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>a.ike@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Kunle Sani</span><span>081X XXX 2119</span></div>
-              <div class="assistant-row"><span>Titi Ogundipe</span><span>081X XXX 2219</span></div>
-            </div>
-          </div>
-          <div class="supervisor-card">
-            <div class="supervisor-top"><div class="supervisor-avatar">MG</div><div><div class="supervisor-name">Mr. Musa Garba</div><div class="supervisor-block">2-Bedroom Apartment 2</div></div></div>
-            <div class="supervisor-detail"><span>Phone</span><span>080X XXX 1120</span></div>
-            <div class="supervisor-detail"><span>Email</span><span>m.garba@hostelhub.edu.ng</span></div>
-            <div class="supervisor-detail"><span>Office Hours</span><span>Mon–Fri, 9–4</span></div>
-            <div class="supervisor-assistants">
-              <div class="assistants-label">Assistants</div>
-              <div class="assistant-row"><span>Dele Musa</span><span>081X XXX 2120</span></div>
-              <div class="assistant-row"><span>Toyin Chukwuemeka</span><span>081X XXX 2220</span></div>
-            </div>
-          </div>
+          {% endif %}
         </div>
         </div>
       </div>

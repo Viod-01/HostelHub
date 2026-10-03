@@ -15,7 +15,7 @@ from django.db import IntegrityError
 from django.test import RequestFactory, TestCase
 from django.utils import timezone
 
-from .models import Hostel, Room, StudentProfile, Booking, Complaint
+from .models import Hostel, Room, StudentProfile, Booking, Complaint, BlockSupervisor, BlockAssistant
 from .views import booking_decision
 
 
@@ -214,6 +214,50 @@ class ComplaintTests(TestCase):
         self.client.post(f"/dashboard/admin/complaints/{complaint.pk}/resolve/")
         complaint.refresh_from_db()
         self.assertEqual(complaint.resolved_at, first_at)
+
+
+# ---------------------------------------------- block supervisor display
+
+class BlockSupervisorDisplayTests(TestCase):
+    """Supervisor details are real data now (the admin page used to show
+    hardcoded placeholder cards) and belong on the student's room pages."""
+
+    def setUp(self):
+        self.hostel = make_hostel()
+        self.room = make_room(self.hostel, "T-101")
+        self.supervisor = BlockSupervisor.objects.create(
+            hostel=self.hostel, name="Mrs. Margaret Okoye", phone="0803 111 2223",
+            email="m.okoye@hostelhub.edu.ng", office_hours="Mon–Fri, 9–4",
+        )
+        BlockAssistant.objects.create(
+            supervisor=self.supervisor, name="John Okafor", phone="0812 333 4445"
+        )
+
+    def test_room_detail_shows_the_block_contacts(self):
+        response = self.client.get("/hostels/T-101/")
+        self.assertContains(response, "Mrs. Margaret Okoye")
+        self.assertContains(response, "0803 111 2223")
+        self.assertContains(response, "John Okafor")
+        self.assertContains(response, "Block Contacts")
+
+    def test_apply_page_shows_the_block_contacts(self):
+        make_student()
+        self.client.login(username="student1", password="pw-12345!")
+        response = self.client.get("/hostels/T-101/apply/")
+        self.assertContains(response, "Mrs. Margaret Okoye")
+        self.assertContains(response, "John Okafor")
+
+    def test_warden_dashboard_shows_real_supervisors_not_placeholders(self):
+        staff = User.objects.create_user("warden", password="pw", is_staff=True)
+        self.client.login(username="warden", password="pw")
+        response = self.client.get("/dashboard/admin/")
+        self.assertContains(response, "Mrs. Margaret Okoye")
+        self.assertNotContains(response, "Okoye</div><div class=\"supervisor-block\">Block B")
+
+    def test_block_without_supervisor_renders_fine(self):
+        make_hostel(name="Lonely Block")
+        response = self.client.get("/hostels/")  # listing unaffected
+        self.assertEqual(response.status_code, 200)
 
 
 # -------------------------------------------------------- public pages
