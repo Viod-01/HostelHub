@@ -260,6 +260,18 @@
   <!-- MAIN -->
   <main>
 
+    {% if messages %}
+    <!-- feedback from the last approve/reject action (room full, already
+         decided, etc.) — previously these messages were set but never shown -->
+    <div style="display:flex; flex-direction:column; gap:.5rem; margin-bottom:1.25rem;">
+      {% for message in messages %}
+      <div class="panel" style="padding:.8rem 1rem; border-left:4px solid {% if message.tags == 'error' %}#e5484d{% elif message.tags == 'warning' %}#f5a524{% else %}#46a758{% endif %};">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- OVERVIEW -->
     <div class="view active" id="view-overview">
       <div class="page-head">

@@ -2,7 +2,7 @@ from django.db.models import Count, F, IntegerField, Sum
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Value
 import re
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
@@ -357,12 +357,21 @@ def booking(request, room_number):
             student.phone = phone
             student.save()
 
-        Booking.objects.create(
-            student=request.user,
-            room=room,
-            session=session,
-            special_requests=special_requests,
-        )
+        # The one_active_booking_per_student index (see Booking.Meta) is the
+        # real guard; the exists() check above only exists to give a friendly
+        # message in the common case. Under a race (double-click, two tabs)
+        # both requests pass the check and one create loses — catch that and
+        # show the same message instead of an IntegrityError 500.
+        try:
+            Booking.objects.create(
+                student=request.user,
+                room=room,
+                session=session,
+                special_requests=special_requests,
+            )
+        except IntegrityError:
+            messages.error(request, "You already have an active application.")
+            return redirect("dashboard")
         return redirect("dashboard")
 
     return render(request, "hostel/booking.html", {"room": room, "student": student})
@@ -467,20 +476,40 @@ def booking_decision(request, booking_id, decision):
     if request.method != "POST" or decision not in ("approved", "rejected"):
         return redirect("admin_dashboard")
 
-    booking_obj = get_object_or_404(Booking, pk=booking_id)
+    # Race-safe decide, all inside one transaction:
+    # 1. select_for_update() makes the DATABASE queue concurrent deciders on
+    #    the same rows. Previously two wardens (or one double-click) could
+    #    both read "pending", both pass the is_full check, and both bump
+    #    occupied_beds — double-counting a bed or overbooking the last one.
+    # 2. Re-check the status INSIDE the lock: if someone decided while we
+    #    were waiting our turn, we no-op instead of deciding twice.
+    # Lock order is always booking -> room, so two decisions on different
+    # bookings of the same room queue up instead of deadlocking.
+    with transaction.atomic():
+        booking_obj = get_object_or_404(
+            Booking.objects.select_for_update(), pk=booking_id
+        )
 
-    if decision == "approved":
-        if booking_obj.room.is_full:
-            messages.error(request, f"Room {booking_obj.room.room_number} is already full.")
+        if booking_obj.status != "pending":
+            messages.warning(
+                request,
+                f"{booking_obj.student.username}'s application for "
+                f"{booking_obj.room.room_number} was already "
+                f"{booking_obj.get_status_display().lower()} — no changes made.",
+            )
+        elif decision == "approved":
+            room = Room.objects.select_for_update().get(pk=booking_obj.room_id)
+            if room.vacant_beds <= 0:
+                messages.error(request, f"Room {room.room_number} is already full.")
+            else:
+                room.occupied_beds += 1  # safe: this row is locked for us alone
+                room.save(update_fields=["occupied_beds"])
+                booking_obj.status = "approved"
+                booking_obj.decided_at = timezone.now()
+                booking_obj.save(update_fields=["status", "decided_at"])
         else:
-            booking_obj.room.occupied_beds += 1
-            booking_obj.room.save()
-            booking_obj.status = "approved"
+            booking_obj.status = "rejected"
             booking_obj.decided_at = timezone.now()
-            booking_obj.save()
-    else:
-        booking_obj.status = "rejected"
-        booking_obj.decided_at = timezone.now()
-        booking_obj.save()
+            booking_obj.save(update_fields=["status", "decided_at"])
 
     return redirect("admin_dashboard")

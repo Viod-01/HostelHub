@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 
 
@@ -73,6 +74,20 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"{self.student} -> {self.room} ({self.status})"
+
+    class Meta:
+        # The database itself enforces "one live application per student":
+        # a partial unique index — at most ONE row per student whose status is
+        # pending or approved. Rejected rows don't block a new application.
+        # The views check this in Python too, but a check-then-insert race
+        # (double-click, two tabs) can only be caught by the database itself.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student"],
+                condition=Q(status__in=["pending", "approved"]),
+                name="one_active_booking_per_student",
+            ),
+        ]
 
 
 class StaffAccessRequest(models.Model):
