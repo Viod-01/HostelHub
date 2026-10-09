@@ -571,6 +571,9 @@ class PublicPageSmokeTests(TestCase):
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertContains(response, "pw-toggle")
+                # the modern eye-icon toggle (two SVG states), not a text link
+                self.assertContains(response, "eye-open")
+                self.assertContains(response, "eye-closed")
 
 
 # ------------------------------------ registration now asks for department
