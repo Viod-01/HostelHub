@@ -93,6 +93,10 @@ def login_view(request):
         if user.is_staff:
             messages.error(request, "Staff accounts sign in from the admin login page.")
             return render(request, "hostel/login.html", {"login_error": True})
+        # drain any error messages still queued from failed attempts —
+        # otherwise they ride along in the session and show up on the
+        # dashboard AFTER a successful login, looking like nonsense
+        list(messages.get_messages(request))
         auth_login(request, user)
         return redirect("dashboard")
 

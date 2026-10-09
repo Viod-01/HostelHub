@@ -388,7 +388,7 @@
       <form method="post" action="{% url 'login_submit' %}" onsubmit="return handleSubmit(event, 'login')" novalidate>
         {% csrf_token %}
         {% if login_error %}
-          <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">Incorrect matric number/email or password.</p>
+          <p style="color: var(--error); font-size: 0.82rem; margin-bottom: 14px;">{% if messages %}{% for message in messages %}{{ message }}{% endfor %}{% else %}Incorrect matric number/email or password.{% endif %}</p>
         {% endif %}
         <div class="field" id="login-id-field">
           <label for="login-id">Matric Number or Email</label>

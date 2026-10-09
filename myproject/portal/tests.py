@@ -641,3 +641,39 @@ class LogoutPlacementTests(TestCase):
         self.client.login(username="admin2", password="pw")
         response = self.client.get("/dashboard/admin/")
         self.assertContains(response, "Log out")
+
+
+# ------------------------------------------- login error message hygiene
+
+class LoginMessageHygieneTests(TestCase):
+    """A failed login queues an error message in the session. The login
+    template used to show a hardcoded line instead of reading those
+    messages, so they were never consumed — and after a SUCCESSFUL login
+    they surfaced on the dashboard ('Incorrect matric number or password'
+    shown to a logged-in user)."""
+
+    def test_failed_login_shows_the_error_on_the_login_page(self):
+        make_student()
+        response = self.client.post("/login/submit/", {
+            "login_id": "MAT/001", "login_pw": "totally-wrong",
+        })
+        self.assertContains(response, "Incorrect matric number/email or password.")
+
+    def test_stale_errors_do_not_follow_a_successful_login(self):
+        make_student()
+        # two failed attempts, exactly like the real-world report
+        self.client.post("/login/submit/", {"login_id": "MAT/001", "login_pw": "nope1"})
+        self.client.post("/login/submit/", {"login_id": "MAT/001", "login_pw": "nope2"})
+        # then the correct one
+        response = self.client.post("/login/submit/", {
+            "login_id": "MAT/001", "login_pw": "pw-12345!",
+        }, follow=True)
+        self.assertContains(response, "Welcome back")
+        self.assertNotContains(response, "Incorrect matric number/email or password.")
+
+    def test_staff_using_student_login_gets_the_right_message(self):
+        User.objects.create_user("staffy", password="pw", is_staff=True)
+        response = self.client.post("/login/submit/", {
+            "login_id": "staffy", "login_pw": "pw",
+        })
+        self.assertContains(response, "Staff accounts sign in from the admin login page.")
