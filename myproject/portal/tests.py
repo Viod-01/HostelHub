@@ -806,3 +806,19 @@ class ExternalReviewFixTests(TestCase):
         self.client.login(username="admin", password="pw")
         response = self.client.get("/dashboard/")
         self.assertRedirects(response, "/dashboard/admin/")
+
+    # --- regression: the POST-only logout conversion once shipped with a
+    # trailing "background:none" in the button reset, which cancelled the
+    # gold background -> navy text on the navy nav -> the Log Out button
+    # was INVISIBLE on every logged-in page. Behavior tests can't see CSS,
+    # so pin the markup: POST form, button present, gold not cancelled.
+    def test_logout_button_stays_visible(self):
+        self.client.login(username="student1", password="pw-12345!")
+        import re
+        for url in ("/dashboard/", "/hostels/", "/dashboard/complaints/"):
+            with self.subTest(page=url):
+                html = self.client.get(url).content.decode()
+                self.assertIn('<form method="post" action="/logout/"', html)
+                m = re.search(r'<button type="submit"[^>]*>Log Out</button>', html)
+                self.assertIsNotNone(m, "Log Out button missing")
+                self.assertNotIn("background:none", m.group(0))

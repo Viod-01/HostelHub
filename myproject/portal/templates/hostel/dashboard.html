@@ -220,7 +220,7 @@
     <a href="{% url 'listing' %}">Hostels</a>
   </div>
   <div class="nav-right">
-    <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0; padding:0;">{% csrf_token %}<button type="submit" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none; background:none; border:none; cursor:pointer; font-family:inherit; margin:0;">Log Out</button></form>
+    <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0; padding:0;">{% csrf_token %}<button type="submit" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none; border:none; cursor:pointer; font-family:inherit; margin:0;">Log Out</button></form>
     <span class="avatar">{{ initials }}</span>
   </div>
 </nav>
