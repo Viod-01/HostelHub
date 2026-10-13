@@ -12,8 +12,10 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 from decouple import config
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -34,6 +36,19 @@ SECRET_KEY = config(
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+# Refuse to boot in production on the public dev fallback key. It has been
+# in the git history since the first commits, so anything it signs can be
+# forged; a misconfigured deploy should fail loudly at boot instead of
+# running quietly with it. (The test runner forces DEBUG=False, and tests
+# sign nothing real — hence the exemption.)
+if not DEBUG and SECRET_KEY.startswith('django-insecure-DEV-ONLY'):
+    if 'test' not in sys.argv[1:]:
+        raise ImproperlyConfigured(
+            'SECRET_KEY is the public dev-only fallback but DEBUG=False. '
+            'Generate one (python -c "import secrets; print(secrets.token_urlsafe(50))") '
+            'and set it as the SECRET_KEY environment variable.'
+        )
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 
