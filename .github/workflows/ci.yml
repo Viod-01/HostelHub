@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      # badge says Python 3.12+ — test both ends of that claim
+      matrix:
+        python-version: ["3.12", "3.13"]
+    # no .env file in CI; settings must come from the environment. The
+    # SECRET_KEY guard in settings.py requires a non-fallback key whenever
+    # DEBUG=False, so give CI one (it signs nothing real).
+    env:
+      SECRET_KEY: ci-only-throwaway-key
+      DEBUG: "False"
+    defaults:
+      run:
+        working-directory: myproject
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: myproject/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: System checks
+        run: python manage.py check
+
+      - name: No missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Test suite (SQLite)
+        # the two concurrency tests need PostgreSQL row locks and skip
+        # themselves with an explanatory message on SQLite
+        run: python manage.py test
