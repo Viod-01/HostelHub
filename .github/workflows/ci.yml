@@ -7,7 +7,9 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # pinned, not ubuntu-latest: the label is mid-migration to Ubuntu 26
+    # (announced for Oct 19) and image drift has been breaking runs
+    runs-on: ubuntu-24.04
     strategy:
       # badge says Python 3.12+ — test both ends of that claim
       matrix:
@@ -22,9 +24,11 @@ jobs:
       run:
         working-directory: myproject
     steps:
-      - uses: actions/checkout@v4
+      # v5/v6 are the Node-24-native majors; v4/v5 get force-run on Node 24
+      # with deprecation warnings (seen failing to boot in run #1/#2)
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
