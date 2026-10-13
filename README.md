@@ -1,10 +1,3 @@
----
-# Hide GitHub's auto-generated table of contents - the hero image and
-# section headings read better here than a boxed list. Delete these four
-# lines if you would rather GitHub render one.
-toc: false
----
-
 ![HostelHub hero](docs/img/01-landing-hero.jpg)
 
 # HostelHub
@@ -13,7 +6,7 @@ A self-service room portal for a 20-block student hostel — browse vacancies, a
 
 Built with Django 6.1. No queues at the porter's lodge, no paper forms, no "come back tomorrow".
 
-![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/django-6.1-092E20?style=flat-square&logo=django&logoColor=white)
 ![Postgres](https://img.shields.io/badge/db-sqlite%20%7C%20postgres-4169E1?style=flat-square&logo=postgresql&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-999999?style=flat-square)
@@ -29,6 +22,8 @@ Built with Django 6.1. No queues at the porter's lodge, no paper forms, no "come
 | **Track** | Live status on the student dashboard: `pending` → `approved` / `rejected` |
 | **Decide** | Admin approves or rejects applications, with capacity enforced on approval |
 | **Onboard staff** | Anyone can request admin access; the account stays locked until an existing admin approves it |
+| **Complaints** | Students report problems (6 categories) and watch the trail; admins run each one through Reported → In Review → Assigned → In Progress → Resolved → Closed, with notes fed back to the student |
+| **Block contacts** | Real supervisor names/phones (with assistants) on every room page, managed in the data admin — the placeholder cards they replaced were hardcoded HTML |
 
 The inventory is real, not mocked: 20 hostel blocks × 51 rooms = **1,020 rooms / 2,295 beds**, seeded by a management command and computed live from the database in the admin overview.
 
@@ -101,13 +96,17 @@ HostelHub/
     │   ├── settings.py               # env-driven config, Postgres/SQLite switch
     │   └── urls.py                   # all routes in one readable list
     └── portal/
-        ├── models.py                 # Hostel, Room, StudentProfile, Booking, StaffAccessRequest
-        ├── views.py                  # 13 views, permission enforced here
+        ├── models.py                 # Hostel, Room, StudentProfile, Booking, Complaint,
+        │                             # ComplaintUpdate, BlockSupervisor, BlockAssistant,
+        │                             # StaffAccessRequest
+        ├── views.py                  # 18 views, permission enforced here
+        ├── charts.py                 # dependency-free SVG line charts
+        ├── tests.py + test_concurrency.py   # 56 tests (2 concurrency tests, Postgres-only)
         ├── admin.py                  # list_display / filters for every model
-        ├── migrations/               # 3 migrations
+        ├── migrations/               # 9 migrations
         ├── management/commands/
-        │   └── seed_rooms.py         # 20 blocks × 51 rooms
-        └── templates/hostel/         # 8 fully self-contained pages
+        │   └── seed_rooms.py         # 20 blocks × 51 rooms, insert-only
+        └── templates/hostel/         # 11 self-contained pages + a chart include
 ```
 
 ### Data model
@@ -136,11 +135,13 @@ Hostel (block)              Room                    Booking
 
 ### 1. One student, one active application
 
-Enforced in `booking()` rather than with a DB constraint, and it deliberately treats `pending` *and* `approved` as active — a student with an application under review cannot spam a second room to improve their odds, and cannot hold two beds after approval.
+Deliberately treats `pending` *and* `approved` as active — a student with an application under review cannot spam a second room to improve their odds, and cannot hold two beds after approval. The view checks in Python for a friendly message, but the real guard is a **partial unique index** (`one_active_booking_per_student`) that makes the database itself refuse a second pending/approved row per student — a check-then-insert race (double-click, two tabs) is caught at the door and surfaced as the same friendly message.
 
 ### 2. Vacancy is checked twice, at the right moments
 
 A student applying to a full room is bounced back to the listing (`room.is_full`), and an admin approving into a room that filled up while the application sat pending is refused with an explicit message. Beds are only claimed at approval — a pending application reserves nothing, so the vacancy you see on the listing page is genuinely available.
+
+The decide itself runs inside `transaction.atomic()` with `select_for_update()` row locks on the booking *and* the room: two admins clicking Approve on the same millisecond (or on two applications for the last bed) queue up at the database instead of double-counting a bed, and a stale dashboard tab can't flip an already-decided application. The threaded tests in `test_concurrency.py` fire two simultaneous decisions at a real Postgres and assert the invariants; the old code fails exactly those two tests, the current code passes 11/11 of the decision-path suite.
 
 ### Self-service staff access, without a privilege-escalation hole
 
@@ -173,6 +174,9 @@ Login failures on the staff page return one generic message whether the account 
 | `/dashboard/admin/` | `admin_dashboard` | `@staff_member_required(login_url='admin_login')` |
 | `/dashboard/admin/bookings/<id>/<decision>/` | `booking_decision` | staff only |
 | `/dashboard/admin/staff-requests/<id>/<decision>/` | `staff_request_decision` | staff only |
+| `/dashboard/complaints/` | `complaints_page` | `@login_required` — report + track |
+| `/dashboard/admin/complaints/` | `complaint_list` | staff only |
+| `/dashboard/admin/complaints/<id>/` | `complaint_detail` | staff only — the pipeline |
 | `/admin/` | Django built-in admin | staff only |
 
 Authentication is split by role at the view layer: a staff account signing in through the *student* form is rejected with a pointer to the admin page, so the two entry points can't be mixed.
@@ -187,11 +191,13 @@ The project is set up for [Render](https://render.com) — `build.sh` is the bui
 pip install -r requirements.txt
 python manage.py collectstatic --no-input
 python manage.py migrate
-python manage.py createsuperuser --noinput || true
+python manage.py createsuperuser --noinput || echo "NOTE: DJANGO_SUPERUSER_* not set - no admin created"
 python manage.py seed_rooms
 ```
 
 Configure on the host: `SECRET_KEY`, `DEBUG=False`, `DATABASE_URL`, `ALLOWED_HOSTS`.
+
+`createsuperuser --noinput` only works if `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL` and `DJANGO_SUPERUSER_PASSWORD` are all set as environment variables — otherwise it is skipped (with a note in the build log, not silently), and the first admin must be created by running `createsuperuser` against the production database.
 
 Static files are served by WhiteNoise and `python manage.py check --deploy` is clean apart from the `SECRET_KEY`-length warning (it fires on any throwaway dev key, including the ones used above).
 
@@ -205,13 +211,11 @@ Static files are served by WhiteNoise and `python manage.py check --deploy` is c
 
 Stated plainly, because a portfolio project is more credible for them than without them:
 
-- **Booking acceptance is not atomic.** `booking_decision` does a read-modify-write on `occupied_beds` without `transaction.atomic()` + `select_for_update()`, so two admins approving simultaneously could overbook the last bed. The `is_full` guard makes this a rare race, not a common one.
 - **No password reset or profile editing.** A forgotten password has no self-service path; the only recovery is editing `auth_user` in Django admin. The login page no longer offers a `Forgot password?` link for it — build the flow before restoring the control.
-- **The listing page sends every room and hides most of it.** ~1,020 cards are rendered server-side (about 1 MB of HTML) and trimmed to a 5-per-block preview in client JS, because `listing()` has no limit or pagination. Correct on screen, wasteful on the wire.
-- **Photos are `picsum.photos` placeholders**, resolved at runtime by a third party, and the favicon is a `.jpg` declared as `image/png`. Swap in real block photography before showing this to anyone who might take the images literally.
+- **Photos are `picsum.photos` placeholders**, resolved at runtime by a third party. (The favicon, at least, is now real and locally served.) Swap in real block photography before showing this to anyone who might take the images literally.
 - **A room holds beds, not people.** `occupied_beds` is an integer; nothing links an approved booking to a specific bed, and there is no move-out or cancellation path that releases one.
-- **Decisions have no author.** `Booking` records `decided_at` but not which admin approved, so there is no audit trail.
-- **No tests, and no CI.** `portal/tests.py` is still the empty scaffold. The behaviours on this page were confirmed by hand against a running instance, which is not a substitute.
+- **Booking decisions have no author.** `Booking` records `decided_at` but not which admin approved (complaint updates do record their author), so the booking audit trail is incomplete.
+- **The admin dashboard's sections are client-side tab switches** (`showView(...)`) rather than real routes — fine at this size, but it means no deep links and no per-section caching.
 - **Rejection is terminal.** A rejected student must register a fresh account to reapply, and the rejected application stays on their dashboard.
 
 ### Fixed in the current history
@@ -230,29 +234,34 @@ Worth listing because each was a live bug, not a code-smell, and the fixes are i
 - A Django gotcha worth remembering: **`{# comment #}` only works on one line.** A multi-line `{#` … `#}` is *not* stripped and renders as visible text on the page. Two comments I added did exactly that.
 - `Complaints` was dead in **three** more templates (`booking`, `details`, `dashboard`) after being removed from two — plus a no-op "Edit Profile" button. All gone; no `href="#"` link that looks actionable remains in the portal.
 - Two nav bugs: `listing.html` had two independent `{% if user.is_authenticated %}` blocks that drew "Log In" twice for guests, and `landing.html` showed it to signed-in students. The dead `Complaints` link (no model, view or URL behind it) is gone.
+- The **booking approval race** named above: decide inside `transaction.atomic()` with `select_for_update()` locks and a status re-check under the lock. The stale-tab fix alone closed a live bug nobody had clocked — a late Approve could resurrect a *rejected* application as approved, leaking a permanently-occupied bed with no release path.
+- The listing shipped **~1,020 cards (~1 MB) and filtered them in the browser**; now the database filters and sorts, and `Paginator` serves 24 per page with the filters carried across pages.
+- **Complaints, end to end**: model + pipeline (Reported → … → Closed), update trail with notes the student sees, assignment to block supervisors, staff-only management pages.
+- The admin dashboard's "Block supervisors" cards were **hardcoded placeholder HTML** (fake names, `080X XXX` numbers) — replaced by real `BlockSupervisor`/`BlockAssistant` models, shown on room pages where students actually need them.
+- **Row-Level Security** enabled on every table via migration — Supabase's auto-generated REST API is deny-by-default while Django (table owner) is untouched; verified 19/19 tables on a fresh database and the full suite against an RLS-enabled non-superuser Postgres.
+- Failed-login errors were queued in the session but never rendered by the login template, so they **surfaced on the dashboard after a successful login** ("wrong password" shown to a signed-in user). The template reads the real messages now, and the success path drains the queue.
+- Every page computed the avatar initials its own way — the dashboard showed name initials while the complaints page showed the first two characters of the **matric number**. One context processor feeds every page the same value now, pinned by test.
 
 ---
 
 ## Roadmap
 
-- [ ] `transaction.atomic()` + `select_for_update()` around approval, and a partial unique index enforcing one-active-booking-per-student at the DB level
-- [ ] Pagination or a server-side limit on the room listing
+- [x] `transaction.atomic()` + `select_for_update()` around approval, and a partial unique index enforcing one-active-booking-per-student at the DB level
+- [x] Pagination or a server-side limit on the room listing — 24/page, filters server-side
+- [x] Tests for the booking, registration and staff-access lifecycles, with GitHub Actions (56 tests; concurrency tests run only under Postgres and self-skip on SQLite)
 - [ ] Move payments out of "price per session" text into an actual invoicing record
-- [ ] Email notifications on approve/reject (`EMAIL_BACKEND` is currently the console backend)
+- [ ] Email notifications on approve/reject (`EMAIL_BACKEND` is currently the console backend) and a real password-reset flow
 - [ ] Per-bed allocation so a shared room shows *which* bed is yours
-- [ ] Tests for the booking, registration and staff-access lifecycles, with GitHub Actions
 - [ ] Split the admin dashboard's client-side views into real routes
+- [ ] Record which admin decided each booking (complaints already do)
 
 ---
 
 ## Tech
 
-**Django 6.1** · `dj-database-url` for SQLite/Postgres parity · `python-decouple` for env config · **gunicorn** + **WhiteNoise** for serving · vanilla HTML/CSS/JS templates with no build step, no CSS framework, and no client-side framework — the eight pages are self-contained by design.
+**Django 6.1** · `dj-database-url` for SQLite/Postgres parity · `python-decouple` for env config · **gunicorn** + **WhiteNoise** for serving · vanilla HTML/CSS/JS templates with no build step, no CSS framework, and no client-side framework — the eleven pages are self-contained by design.
 
 ## License
 
 Released under the MIT License.
 
----
-
-*Three shots, one per surface that matters: the landing hero above, the student-side listing, and the admin dashboard. They were captured from the app running locally (Django 6.1 + SQLite, `seed_rooms` data) — `python manage.py seed_rooms` gives a clean, empty-inventory start if you want to re-shoot them.*
