@@ -193,6 +193,13 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
+# ...except under the test runner: the test client speaks plain
+# http://testserver, so the SSL redirect above would 301 every request
+# and sink the whole suite whenever DEBUG=False is in the environment
+# (exactly what CI does).
+if 'test' in sys.argv[1:]:
+    SECURE_SSL_REDIRECT = False
+
 # Explicit, since both are currently left to Django defaults. Set here so they
 # do not silently change on a future upgrade, and so the intent is visible.
 SESSION_COOKIE_HTTPONLY = True
