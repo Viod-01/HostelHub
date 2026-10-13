@@ -243,7 +243,7 @@
   {% if user.is_authenticated %}
     <div style="display:flex; align-items:center; gap:14px;">
       <a href="{% url 'dashboard' %}" style="color: var(--slate); font-size: 0.88rem;">Dashboard</a>
-      <a href="{% url 'logout' %}" class="nav-cta">Log Out</a>
+      <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0; padding:0;">{% csrf_token %}<button type="submit" class="nav-cta" style="background:none; border:none; cursor:pointer; font-family:inherit; margin:0;">Log Out</button></form>
     </div>
   {% else %}
     <a href="{% url 'login_register' %}" class="nav-cta">Log In</a>

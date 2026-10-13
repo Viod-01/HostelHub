@@ -15,7 +15,10 @@ from django.db import IntegrityError
 from django.test import RequestFactory, TestCase
 from django.utils import timezone
 
-from .models import Hostel, Room, StudentProfile, Booking, Complaint, BlockSupervisor, BlockAssistant
+from .models import (
+    Hostel, Room, StudentProfile, Booking, Complaint, BlockSupervisor,
+    BlockAssistant, StaffAccessRequest,
+)
 from .views import booking_decision
 
 
@@ -680,3 +683,126 @@ class LoginMessageHygieneTests(TestCase):
             "login_id": "staffy", "login_pw": "pw",
         })
         self.assertContains(response, "Staff accounts sign in from the admin login page.")
+
+
+# ------------------------------- fixes from the Oct 13 external code review
+
+class ExternalReviewFixTests(TestCase):
+    """Each test pins a finding from the external review of d45e64c."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user("admin", password="pw", is_staff=True)
+        self.student = make_student()
+        from django.core.cache import cache
+        cache.clear()
+
+    # --- security 1: staff signup validates password and email ---
+    def test_staff_request_rejects_weak_password(self):
+        response = self.client.post("/admin-login/request/", {
+            "full_name": "Staff Person", "staff_id": "STF/001",
+            "department": "Works", "email": "s@example.com", "password": "1",
+        })
+        self.assertContains(response, "password")
+        self.assertEqual(StaffAccessRequest.objects.count(), 0)
+
+    def test_staff_request_rejects_invalid_email(self):
+        self.client.post("/admin-login/request/", {
+            "full_name": "Staff Person", "staff_id": "STF/002",
+            "department": "Works", "email": "not-an-email", "password": "sensible-Pw1!",
+        })
+        self.assertEqual(StaffAccessRequest.objects.count(), 0)
+
+    # --- security 2: rejecting an approved request revokes access ---
+    def test_rejecting_a_staff_request_revokes_any_access(self):
+        # the user row starts with access ON (the old bug kept these True
+        # when a request was rejected) - rejection must switch both off
+        req = StaffAccessRequest.objects.create(
+            user=User.objects.create_user("staff:STF/003", password="pw", is_active=True, is_staff=True),
+            staff_id="STF/003", department="Works",
+        )
+        self.client.login(username="admin", password="pw")
+        self.client.post(f"/dashboard/admin/staff-requests/{req.pk}/rejected/")
+        req.refresh_from_db()
+        req.user.refresh_from_db()
+        self.assertEqual(req.status, "rejected")
+        self.assertFalse(req.user.is_staff)
+        self.assertFalse(req.user.is_active)
+
+    def test_only_pending_staff_requests_can_be_decided(self):
+        for status in ("approved", "rejected"):
+            with self.subTest(status=status):
+                req = StaffAccessRequest.objects.create(
+                    user=User.objects.create_user(f"staff:STF/{status}", password="pw", is_active=False),
+                    staff_id=f"STF/{status}", department="Works", status=status,
+                )
+                self.client.login(username="admin", password="pw")
+                self.client.post(f"/dashboard/admin/staff-requests/{req.pk}/approved/")
+                req.refresh_from_db()
+                self.assertEqual(req.status, status)   # unchanged
+                self.assertFalse(req.user.is_staff)
+
+    # --- security 3: staff usernames are namespaced, no matric squatting ---
+    def test_staff_request_cannot_squat_a_matric_number(self):
+        self.client.post("/admin-login/request/", {
+            "full_name": "Imposter", "staff_id": "MAT/777",   # a student's matric
+            "department": "Works", "email": "imp@example.com", "password": "sensible-Pw1!",
+        })
+        # the Django username is namespaced; the student's registration still works
+        self.assertFalse(User.objects.filter(username="MAT/777").exists())
+        response = self.client.post("/register/submit/", {
+            "reg_name": "Real Student", "reg_matric": "MAT/777", "reg_level": "200",
+            "reg_department": "CS", "reg_email": "real@example.com", "reg_pw": "sensible-Pw1!",
+        })
+        self.assertRedirects(response, "/dashboard/")
+
+    # --- security 5: logout is POST-only; login throttles ---
+    def test_logout_get_does_not_log_out(self):
+        self.client.login(username="student1", password="pw-12345!")
+        self.client.get("/logout/")
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)   # still logged in
+
+    def test_login_locks_after_five_failures(self):
+        for i in range(5):
+            self.client.post("/login/submit/", {"login_id": "MAT/001", "login_pw": "wrong"})
+        # even the CORRECT password is now refused
+        response = self.client.post("/login/submit/", {
+            "login_id": "MAT/001", "login_pw": "pw-12345!",
+        })
+        self.assertContains(response, "Too many attempts")
+        # and the user is not logged in: /dashboard/ bounces to the login page
+        self.assertEqual(self.client.get("/dashboard/").status_code, 302)
+
+    # --- bug 1: hostile block filter values ---
+    def test_unicode_block_filter_does_not_500(self):
+        for nasty in ["\u00b2", "9" * 30, "abc", "-1"]:
+            with self.subTest(block=nasty):
+                response = self.client.get(f"/hostels/?block={nasty}")
+                self.assertEqual(response.status_code, 200)
+
+    # --- bug 2: complaint ordering ranks by pipeline, not alphabet ---
+    def test_complaints_order_unfinished_first(self):
+        from .models import Complaint as C
+        C.objects.create(student=self.student, category="water", description="old closed", status="closed")
+        C.objects.create(student=self.student, category="water", description="live open", status="open")
+        self.client.login(username="admin", password="pw")
+        html = self.client.get("/dashboard/admin/complaints/").content.decode()
+        self.assertLess(html.index("live open"), html.index("old closed"))
+
+    # --- bug 3: email login is case-insensitive ---
+    def test_email_login_is_case_insensitive(self):
+        self.client.post("/register/submit/", {
+            "reg_name": "Case Test", "reg_matric": "MAT/077", "reg_level": "100",
+            "reg_department": "CS", "reg_email": "Ada@Mail.com", "reg_pw": "sensible-Pw1!",
+        })
+        self.client.logout()
+        response = self.client.post("/login/submit/", {
+            "login_id": "ada@mail.com", "login_pw": "sensible-Pw1!",
+        }, follow=True)
+        self.assertContains(response, "Welcome back")
+
+    # --- bug 4: staff visiting the student dashboard are redirected ---
+    def test_staff_hitting_student_dashboard_gets_redirected(self):
+        self.client.login(username="admin", password="pw")
+        response = self.client.get("/dashboard/")
+        self.assertRedirects(response, "/dashboard/admin/")

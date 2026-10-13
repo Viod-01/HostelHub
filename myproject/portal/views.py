@@ -1,4 +1,5 @@
-from django.db.models import Count, F, IntegerField, Prefetch, Sum
+from django.core.cache import cache
+from django.db.models import Case, Count, F, IntegerField, Prefetch, Sum, When
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import Value
 import re
@@ -69,6 +70,21 @@ def login_register(request):
     and register_view below, which this page's two forms POST to."""
     return render(request, "hostel/login.html")
 
+LOGIN_ATTEMPT_LIMIT = 5
+LOGIN_ATTEMPT_WINDOW = 15 * 60  # seconds
+
+
+def _login_blocked(prefix, identifier):
+    """Simple cache-based throttle: after 5 failed attempts, the 6th is
+    refused for 15 minutes even with the right password."""
+    return cache.get(f"{prefix}:{identifier[:80]}", 0) >= LOGIN_ATTEMPT_LIMIT
+
+
+def _record_failed_login(prefix, identifier):
+    key = f"{prefix}:{identifier[:80]}"
+    cache.set(key, cache.get(key, 0) + 1, LOGIN_ATTEMPT_WINDOW)
+
+
 @never_cache
 def login_view(request):
     if request.method != "POST":
@@ -77,6 +93,10 @@ def login_view(request):
     identifier = request.POST.get("login_id", "").strip()
     password = request.POST.get("login_pw", "")
 
+    if _login_blocked("student", identifier):
+        messages.error(request, "Too many attempts — please wait 15 minutes and try again.")
+        return render(request, "hostel/login.html", {"login_error": True})
+
     # identifier can be a matric number or an email — this form is for
     # students only, staff use the separate admin login page.
     username = None
@@ -84,7 +104,9 @@ def login_view(request):
     if profile:
         username = profile.user.username
     else:
-        user_by_email = User.objects.filter(email=identifier).first()
+        # iexact to match signup's uniqueness check — an exact match made
+        # logging in as ada@mail.com fail for a Ada@Mail.com account
+        user_by_email = User.objects.filter(email__iexact=identifier).first()
         username = user_by_email.username if user_by_email else identifier
 
     user = authenticate(request, username=username, password=password) if username else None
@@ -97,9 +119,11 @@ def login_view(request):
         # otherwise they ride along in the session and show up on the
         # dashboard AFTER a successful login, looking like nonsense
         list(messages.get_messages(request))
+        cache.delete(f"student:{identifier[:80]}")
         auth_login(request, user)
         return redirect("dashboard")
 
+    _record_failed_login("student", identifier)
     messages.error(request, "Incorrect matric number/email or password.")
     return render(request, "hostel/login.html", {"login_error": True})
 
@@ -177,6 +201,10 @@ def register_view(request):
 
 
 def logout_view(request):
+    # POST-only: a GET logout link is a CSRF hole (any page can log a user
+    # out with an <img> tag). All the nav Log Out buttons are forms now.
+    if request.method != "POST":
+        return redirect("landing")
     auth_logout(request)
     return redirect("landing")
 
@@ -209,20 +237,26 @@ def admin_login_submit(request):
     identifier = request.POST.get("admin_id", "").strip()
     password = request.POST.get("admin_pw", "")
 
+    if _login_blocked("staff", identifier):
+        messages.error(request, "Too many attempts — please wait 15 minutes and try again.")
+        return render(request, "hostel/admin_login.html", {"login_error": True})
+
     # staff accounts have no matric number — identifier is either their
     # Django username or their email, never looked up via StudentProfile
-    user_by_email = User.objects.filter(email=identifier).first()
+    user_by_email = User.objects.filter(email__iexact=identifier).first()
     username = user_by_email.username if user_by_email else identifier
 
     user = authenticate(request, username=username, password=password)
 
     if user is not None and user.is_staff:
+        cache.delete(f"staff:{identifier[:80]}")
         auth_login(request, user)
         return redirect("admin_dashboard")
 
     # deliberately the same generic message whether the account doesn't
     # exist, the password's wrong, or it's a real account that just
     # isn't staff — don't reveal which, to avoid helping someone probe
+    _record_failed_login("staff", identifier)
     messages.error(request, "Incorrect staff ID/email or password.")
     return render(request, "hostel/admin_login.html", {"login_error": True})
 
@@ -243,7 +277,11 @@ def request_access(request):
             "request_access_error": True, "active_tab": "request",
         })
 
-    if User.objects.filter(username=staff_id).exists() or StaffAccessRequest.objects.filter(staff_id=staff_id).exists():
+    # the Django username is NAMESPACED (staff:<id>): an unauthenticated
+    # visitor could otherwise submit a student's matric number as a staff
+    # ID, and auth_user would claim that username before the student could
+    # ever register ("an account with that matric number already exists")
+    if User.objects.filter(username=f"staff:{staff_id}").exists() or StaffAccessRequest.objects.filter(staff_id=staff_id).exists():
         messages.error(request, "An access request with that staff ID already exists.")
         return render(request, "hostel/admin_login.html", {
             "request_access_error": True, "active_tab": "request",
@@ -259,18 +297,38 @@ def request_access(request):
             "request_access_error": True, "active_tab": "request",
         })
 
+    # the student register flow validates these; this public form must too —
+    # an approved request becomes a full admin, so "password 1" and
+    # "not-an-email" are not acceptable here
+    try:
+        validate_email(email)
+        validate_password(password)
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+        return render(request, "hostel/admin_login.html", {
+            "request_access_error": True, "active_tab": "request",
+        })
+
+    if len(staff_id) > 150:
+        messages.error(request, "That staff ID is too long.")
+        return render(request, "hostel/admin_login.html", {
+            "request_access_error": True, "active_tab": "request",
+        })
+
     # Created inactive and not staff — authenticate() already refuses login
     # for inactive users, so there's no separate check needed to keep this
     # account locked out until an existing admin approves the request.
-    user = User.objects.create_user(
-        username=staff_id, email=email, password=password, is_active=False,
-    )
-    name_parts = full_name.split(" ", 1)
-    user.first_name = name_parts[0]
-    user.last_name = name_parts[1] if len(name_parts) > 1 else ""
-    user.save()
+    # Atomic: a failure after create_user must not leave an orphan User.
+    with transaction.atomic():
+        user = User.objects.create_user(
+            username=f"staff:{staff_id}", email=email, password=password, is_active=False,
+        )
+        name_parts = full_name.split(" ", 1)
+        user.first_name = name_parts[0]
+        user.last_name = name_parts[1] if len(name_parts) > 1 else ""
+        user.save()
 
-    StaffAccessRequest.objects.create(user=user, staff_id=staff_id, department=department)
+        StaffAccessRequest.objects.create(user=user, staff_id=staff_id, department=department)
 
     return render(request, "hostel/admin_login.html", {
         "request_submitted": True, "active_tab": "request",
@@ -292,8 +350,14 @@ def listing(request):
     # hand-edited URL can't inject an arbitrary query
     block = request.GET.get("block", "")
     room_type = request.GET.get("type", "")
-    if block.isdigit():
-        rooms = rooms.filter(hostel_id=int(block))
+    # try/int, NOT isdigit(): '²'.isdigit() is True but int('²') raises,
+    # and an oversized digit string overflows int4 on Postgres
+    try:
+        block_id = int(block)
+        if block_id > 0 and len(block) <= 9:
+            rooms = rooms.filter(hostel_id=block_id)
+    except (ValueError, TypeError):
+        pass  # garbage filter value -> unfiltered listing, never a 500
     if room_type in dict(Hostel.ROOM_TYPE_CHOICES):
         rooms = rooms.filter(hostel__room_type=room_type)
 
@@ -386,6 +450,9 @@ def detail(request, room_number):
 @never_cache
 @login_required
 def dashboard(request):
+    # staff accounts have no StudentProfile — redirect instead of 404
+    if request.user.is_staff:
+        return redirect("admin_dashboard")
     student = get_object_or_404(StudentProfile, user=request.user)
     # latest booking regardless of status — the template branches on booking.status
     booking = (
@@ -536,11 +603,19 @@ def admin_dashboard(request):
     )
     pending_staff_requests = staff_requests.filter(status="pending")
 
-    # complaints: unfinished ones first, newest first
+    # complaints: unfinished first, newest first. NOT order_by("status") —
+    # that sorts alphabetically (assigned, closed, in_progress, open...),
+    # putting CLOSED complaints above OPEN ones
+    status_rank = Case(
+        *[When(status=s, then=Value(i)) for i, s in enumerate(
+            ["open", "review", "assigned", "in_progress", "resolved", "closed"]
+        )],
+        default=Value(99),
+    )
     complaints = (
         Complaint.objects
         .select_related("student", "assigned_to", "assigned_to__hostel")
-        .order_by("status", "-created_at")
+        .order_by(status_rank, "-created_at")
     )
     open_complaint_count = complaints.exclude(status__in=["resolved", "closed"]).count()
 
@@ -574,14 +649,22 @@ def staff_request_decision(request, request_id, decision):
 
     access_request = get_object_or_404(StaffAccessRequest, pk=request_id)
 
+    if access_request.status != "pending":
+        messages.warning(request, "That staff request was already decided — no changes made.")
+        return redirect("admin_dashboard")
+
     if decision == "approved":
         access_request.user.is_active = True
         access_request.user.is_staff = True
         access_request.user.save()
         access_request.status = "approved"
     else:
-        # keep the account on record but leave it inactive/non-staff —
-        # rejected requests can't log in anywhere, student or admin side
+        # rejection REVOKES: an approved-then-rejected staff member must
+        # actually lose access, not just get a rejected label while
+        # is_staff/is_active stay True
+        access_request.user.is_active = False
+        access_request.user.is_staff = False
+        access_request.user.save()
         access_request.status = "rejected"
 
     access_request.decided_at = timezone.now()
@@ -696,10 +779,16 @@ def complaint_list(request):
     """The admin's complaints page — a real, standalone page (the complaints
     table used to live in a hidden pane of the dashboard with no sidebar
     entry pointing at it)."""
+    status_rank = Case(
+        *[When(status=s, then=Value(i)) for i, s in enumerate(
+            ["open", "review", "assigned", "in_progress", "resolved", "closed"]
+        )],
+        default=Value(99),
+    )
     complaints = (
         Complaint.objects
         .select_related("student", "assigned_to", "assigned_to__hostel")
-        .order_by("status", "-created_at")
+        .order_by(status_rank, "-created_at")
     )
     return render(request, "hostel/admin_complaints.html", {
         "complaints": complaints,

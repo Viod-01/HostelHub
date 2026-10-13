@@ -53,7 +53,7 @@ Open http://127.0.0.1:8000
 
 ### Environment
 
-All settings are read through `python-decouple`, so a local `.env` works out of the box. Everything is optional — the app boots with SQLite and no config at all.
+All settings are read through `python-decouple`, so a local `.env` works out of the box. `DEBUG` defaults to `False` (production posture), and the app **refuses to boot** in that mode on the dev fallback `SECRET_KEY` — so a fresh clone needs at least `DEBUG=True` in `myproject/.env` (see the block below), or a real `SECRET_KEY`.
 
 ```ini
 # myproject/.env  (git-ignored)

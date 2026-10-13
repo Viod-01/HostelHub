@@ -158,6 +158,22 @@ STORAGES = {
     },
 }
 
+# Behind Render's proxy the request arrives as HTTP; this header (set by
+# the proxy) is what lets Django see the original scheme. Render's gunicorn
+# runtime already honors X-Forwarded-Proto via FORWARDED_ALLOW_IPS, so the
+# live site worked without this — but correctness should not depend on the
+# runtime's env; the header check makes it explicit.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Test mode: the manifest storage requires a collectstatic run, which a
+# fresh clone (and CI) does not have — every page-rendering test would die
+# with 'Missing staticfiles manifest entry'. Plain storage has no such
+# requirement. MD5 hashing makes the suite ~3x faster; test passwords are
+# throwaway and sign nothing real.
+if 'test' in sys.argv[1:]:
+    STORAGES['staticfiles']['BACKEND'] = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
