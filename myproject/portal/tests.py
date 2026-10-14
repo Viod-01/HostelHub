@@ -865,3 +865,22 @@ class SharedNavTests(TestCase):
         self.assertIn(">Log Out</button>", html)
         # avatar comes AFTER the logout form in the markup (right side)
         self.assertGreater(html.index("hh-avatar"), html.index("hh-logout-btn"))
+
+    # --- regression: the admin overview had ONE extra </div> (from the very
+    # first commit) that closed the layout grid early, so the Students and
+    # Staff Requests views rendered below the page instead of inside it.
+    # Browsers repair broken nesting silently - tests must count divs.
+    def test_rendered_pages_have_balanced_divs(self):
+        import re
+        self.client.login(username="admin", password="pw")
+        for url in ("/dashboard/admin/", "/dashboard/admin/complaints/",
+                    "/dashboard/complaints/"):
+            with self.subTest(page=url):
+                html = self.client.get(url).content.decode()
+                opens = len(re.findall(r"<div[\s>]", html))
+                closes = len(re.findall(r"</div>", html))
+                self.assertEqual(
+                    opens, closes,
+                    f"{url}: {opens} <div> opens vs {closes} closes - "
+                    "broken nesting shifts whole sections out of the layout",
+                )
