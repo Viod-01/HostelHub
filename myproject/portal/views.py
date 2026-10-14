@@ -475,6 +475,10 @@ def dashboard(request):
 
 @login_required
 def booking(request, room_number):
+    # staff have no StudentProfile - same 404 class the dashboard used to
+    # have; send them where they belong instead
+    if request.user.is_staff:
+        return redirect("admin_dashboard")
     room = get_object_or_404(Room.objects.select_related("hostel"), room_number=room_number)
     student = get_object_or_404(StudentProfile, user=request.user)
 
@@ -725,6 +729,11 @@ def complaints_page(request):
     """A dedicated page for reporting problems (used to be a form squeezed
     onto the dashboard). GET shows the form + the student's full history;
     POST submits a new complaint."""
+    # the form files a complaint as the requesting USER - a staff member
+    # wandering here would file a "student" complaint as staff. Send staff
+    # to the management view instead.
+    if request.user.is_staff:
+        return redirect("complaint_list")
     if request.method == "POST":
         category = request.POST.get("category", "").strip()
         description = request.POST.get("description", "").strip()

@@ -822,3 +822,16 @@ class ExternalReviewFixTests(TestCase):
                 m = re.search(r'<button type="submit"[^>]*>Log Out</button>', html)
                 self.assertIsNotNone(m, "Log Out button missing")
                 self.assertNotIn("background:none", m.group(0))
+
+    # --- full-site sweep (Oct 13): two more staff-404/leak class fixes ---
+    def test_staff_hitting_apply_page_gets_redirected(self):
+        hostel = make_hostel("Sweep Block")
+        make_room(hostel, "SW-101")
+        self.client.login(username="admin", password="pw")
+        response = self.client.get("/hostels/SW-101/apply/")
+        self.assertRedirects(response, "/dashboard/admin/")
+
+    def test_staff_cannot_open_the_student_complaint_form(self):
+        self.client.login(username="admin", password="pw")
+        response = self.client.get("/dashboard/complaints/")
+        self.assertRedirects(response, "/dashboard/admin/complaints/")
