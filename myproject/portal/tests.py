@@ -545,8 +545,8 @@ class DashboardButtonTests(TestCase):
     def test_student_complaints_page_has_the_button(self):
         self.client.login(username="student1", password="pw-12345!")
         response = self.client.get("/dashboard/complaints/")
-        # nav links + breadcrumb + the always-visible button
-        self.assertContains(response, 'href="/dashboard/"', count=3)
+        # the shared nav link + the breadcrumb link
+        self.assertContains(response, 'href="/dashboard/"', count=2)
 
     def test_admin_complaints_pages_have_the_button(self):
         self.client.login(username="admin", password="pw")
@@ -554,8 +554,8 @@ class DashboardButtonTests(TestCase):
                     f"/dashboard/admin/complaints/{self.complaint.pk}/"]:
             with self.subTest(url=url):
                 response = self.client.get(url)
-                self.assertContains(response, 'href="/dashboard/admin/"', count=3)
-                self.assertContains(response, ">Dashboard</a>")
+                self.assertContains(response, 'href="/dashboard/admin/"', count=2)
+                self.assertContains(response, ">Admin Dashboard</a>")
 
 
 # -------------------------------------------------------- public pages
@@ -835,3 +835,33 @@ class ExternalReviewFixTests(TestCase):
         self.client.login(username="admin", password="pw")
         response = self.client.get("/dashboard/complaints/")
         self.assertRedirects(response, "/dashboard/admin/complaints/")
+
+
+class SharedNavTests(TestCase):
+    """_nav.html is the single nav bar for the whole site: brand left,
+    Dashboard + Hostels centered, Log Out beside the initials avatar on
+    the right. This pins it staying IDENTICAL across pages."""
+
+    def test_nav_is_identical_across_logged_in_pages(self):
+        import re
+        make_student()
+        self.client.login(username="student1", password="pw-12345!")
+        navs = set()
+        for url in ("/dashboard/", "/hostels/", "/dashboard/complaints/"):
+            html = self.client.get(url).content.decode()
+            m = re.search(r'<header class="hh-nav">.*?</header>', html, re.S)
+            self.assertIsNotNone(m, f"shared nav missing on {url}")
+            # csrf tokens differ per response and the current page's
+            # link carries hh-active - normalize both before comparing
+            nav = re.sub(r'value="[^"]*"', 'value="X"', m.group(0))
+            navs.add(re.sub(r'class="[^"]*"', 'class="C"', nav))
+        self.assertEqual(len(navs), 1, "the nav bar differs between pages")
+
+    def test_nav_shows_logout_beside_avatar_when_logged_in(self):
+        make_student()
+        self.client.login(username="student1", password="pw-12345!")
+        html = self.client.get("/dashboard/").content.decode()
+        self.assertIn('class="hh-avatar"', html)
+        self.assertIn(">Log Out</button>", html)
+        # avatar comes AFTER the logout form in the markup (right side)
+        self.assertGreater(html.index("hh-avatar"), html.index("hh-logout-btn"))

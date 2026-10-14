@@ -376,25 +376,7 @@
 </head>
 <body>
 
-<nav>
-  <div class="brand-mark">
-    <span class="dot"></span>
-    <span>HOSTELHUB</span>
-  </div>
-  <div class="nav-links">
-    <a href="#how">How it works</a>
-    <a href="#hostels">Hostels</a>
-  </div>
-  <div class="nav-cta-group">
-    {% if user.is_authenticated %}
-      <a href="{% url 'dashboard' %}" class="nav-cta-outline">Dashboard</a>
-      <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0; padding:0;">{% csrf_token %}<button type="submit" class="nav-cta" style="border:none; cursor:pointer; font-family:inherit; margin:0;">Log Out</button></form>
-    {% else %}
-      <a href="{% url 'admin_login' %}" class="nav-cta-outline">Staff Login</a>
-      <a href="{% url 'login_register' %}" class="nav-cta">Log In</a>
-    {% endif %}
-  </div>
-</nav>
+{% include 'hostel/_nav.html' %}
 
 <section class="hero">
   <div class="hero-copy">

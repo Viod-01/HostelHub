@@ -95,16 +95,7 @@
 </head>
 <body>
 
-<nav>
-  <div class="brand-mark"><span class="dot"></span><span>HOSTELHUB</span></div>
-  <div class="nav-links">
-    <a href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
-  </div>
-  <div style="display:flex; align-items:center; gap:14px;">
-    <a href="{% url 'admin_dashboard' %}" style="background:rgba(147,160,188,0.12); color:var(--off-white); border:1px solid rgba(147,160,188,0.25); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none;">Dashboard</a>
-    <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0; padding:0;">{% csrf_token %}<button type="submit" style="background:var(--gold); color:var(--navy-deep); font-weight:600; font-size:0.84rem; padding:9px 18px; border-radius:9px; text-decoration:none; border:none; cursor:pointer; font-family:inherit; margin:0;">Log Out</button></form>
-  </div>
-</nav>
+{% include 'hostel/_nav.html' %}
 
 <div class="wrap">
   <div class="crumb"><a href="{% url 'admin_dashboard' %}">Admin Dashboard</a> / Complaints</div>

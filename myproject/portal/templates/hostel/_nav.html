@@ -1,0 +1,81 @@
+{% comment %}
+  THE one nav bar for every page of the site.
+
+  Layout: brand left · main links DEAD CENTER · when logged in, the
+  Log Out button sits on the right BESIDE the initials avatar.
+
+  This partial replaced eight per-page navs that had drifted apart
+  (different link labels, order, and pages missing the avatar).
+  Included by: landing, listing, details, booking, dashboard,
+  complaints, admin_complaints, admin_complaint.
+  (The admin overview page keeps its own sidebar layout.)
+{% endcomment %}
+<style>
+  .hh-nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(20,33,61,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(232,163,61,0.12);
+  }
+  .hh-nav-inner {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    padding: 20px clamp(24px, 6vw, 72px);
+  }
+  .hh-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; justify-self: start; }
+  .hh-brand .hh-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+  .hh-brand .hh-name { font-family: 'Fraunces', serif; font-size: 1.05rem; letter-spacing: 0.03em; color: var(--slate); }
+  .hh-center { display: flex; gap: 32px; font-size: 0.88rem; justify-self: center; }
+  .hh-center a { color: var(--slate); text-decoration: none; }
+  .hh-center a:hover, .hh-center a.hh-active { color: var(--gold-soft); }
+  .hh-right { display: flex; align-items: center; gap: 14px; justify-self: end; }
+  .hh-logout-form { margin: 0; display: inline; }
+  .hh-logout-btn {
+    background: var(--gold); color: var(--navy-deep); font-weight: 600; font-size: 0.84rem;
+    padding: 9px 18px; border-radius: 9px; border: none; cursor: pointer; font-family: inherit;
+  }
+  .hh-logout-btn:hover { filter: brightness(1.06); }
+  .hh-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--gold); color: var(--navy-deep);
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hh-ghost { color: var(--slate); font-size: 0.88rem; text-decoration: none; }
+  .hh-ghost:hover { color: var(--gold-soft); }
+  .hh-login {
+    background: var(--gold); color: var(--navy-deep); font-weight: 600; font-size: 0.86rem;
+    padding: 10px 20px; border-radius: 9px; text-decoration: none;
+  }
+  @media (max-width: 760px) { .hh-center { display: none; } }
+</style>
+<header class="hh-nav">
+  <div class="hh-nav-inner">
+    <a class="hh-brand" href="{% url 'landing' %}"><span class="hh-dot"></span><span class="hh-name">HOSTELHUB</span></a>
+
+    <nav class="hh-center">
+      {% if request.user.is_authenticated %}
+        {% if request.user.is_staff %}
+          <a href="{% url 'admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}hh-active{% endif %}">Admin Dashboard</a>
+        {% else %}
+          <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}hh-active{% endif %}">Dashboard</a>
+        {% endif %}
+        <a href="{% url 'listing' %}" class="{% if request.resolver_match.url_name in 'listing detail booking' %}hh-active{% endif %}">Hostels</a>
+      {% else %}
+        {% if request.path == '/' %}<a href="#how">How it works</a>{% endif %}
+        <a href="{% url 'listing' %}">Hostels</a>
+      {% endif %}
+    </nav>
+
+    <div class="hh-right">
+      {% if request.user.is_authenticated %}
+        <form method="post" action="{% url 'logout' %}" class="hh-logout-form">{% csrf_token %}
+          <button type="submit" class="hh-logout-btn">Log Out</button>
+        </form>
+        <span class="hh-avatar" title="{{ request.user.get_full_name }}">{{ initials }}</span>
+      {% else %}
+        <a href="{% url 'admin_login' %}" class="hh-ghost">Staff Login</a>
+        <a href="{% url 'login_register' %}" class="hh-login">Log In</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
